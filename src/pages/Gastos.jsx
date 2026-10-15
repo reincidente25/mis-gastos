@@ -4,19 +4,19 @@ import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import AmountInput from '../components/AmountInput';
 import { useGastosMes } from '../hooks/useGastosMes';
-import { CATEGORIAS, getCategoria } from '../config/categorias';
+import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
 import { formatMoneda, mesActual, aplicaEnMes } from '../utils/format';
 import './Gastos.css';
 
-// Agrupa conceptos por `grupo`, preservando el orden de aparición.
-// Devuelve [{ grupo, items }]; grupo '' = sueltos (sin encabezado).
+// Agrupa conceptos por grupoId, preservando el orden de aparición.
+// Devuelve [{ grupoId, items }]; grupoId '' = sin grupo (sin encabezado).
 const agruparConceptos = (conceptos) => {
   const orden = [];
   const mapa = {};
   conceptos.forEach((c) => {
-    const key = c.grupo || '';
-    if (!mapa[key]) { mapa[key] = { grupo: key, items: [] }; orden.push(key); }
+    const key = c.grupoId || '';
+    if (!mapa[key]) { mapa[key] = { grupoId: key, items: [] }; orden.push(key); }
     mapa[key].items.push(c);
   });
   return orden.map((k) => mapa[k]);
@@ -25,11 +25,15 @@ const agruparConceptos = (conceptos) => {
 const subtotalGrupo = (items, porConcepto) =>
   items.reduce((acc, c) => acc + (Number(porConcepto[c.id]?.monto) || 0), 0);
 
-// Nombre a mostrar: si está dentro de un grupo y el nombre empieza con el
-// grupo, mostramos solo la parte distintiva (ej: "Edesur Dolores" -> "Dolores").
-const nombreCorto = (c) => {
-  if (c.grupo && c.nombre.toLowerCase().startsWith(c.grupo.toLowerCase())) {
-    const resto = c.nombre.slice(c.grupo.length).trim();
+// Nombre a mostrar: si el nombre empieza con el del grupo, mostramos solo la
+// parte distintiva (ej: grupo "Dolores" + "Edesur Dolores" -> "Edesur").
+const nombreCorto = (c, grupoNombre) => {
+  if (grupoNombre && c.nombre.toLowerCase().startsWith(grupoNombre.toLowerCase())) {
+    const resto = c.nombre.slice(grupoNombre.length).trim();
+    return resto || c.nombre;
+  }
+  if (grupoNombre && c.nombre.toLowerCase().endsWith(grupoNombre.toLowerCase())) {
+    const resto = c.nombre.slice(0, -grupoNombre.length).trim();
     return resto || c.nombre;
   }
   return c.nombre;
@@ -83,10 +87,12 @@ const DesgloseEditor = ({ items, onChange }) => {
   );
 };
 
-const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, onGuardarMonto, onGuardarDetalle }) => {
-  const cat = getCategoria(concepto.categoria);
+const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMonto, onGuardarDetalle, onGuardarMeta }) => {
+  const { getCat } = useEstructura();
+  const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
   const tieneItems = items.length > 0;
+  const tieneGasto = Boolean(gasto);
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -97,13 +103,14 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, onGuardarMonto, onGuardar
         </span>
         <span className="cr-nombre">
           <span>
-            {dentroDeGrupo ? nombreCorto(concepto) : concepto.nombre}
+            {dentroDeGrupo ? nombreCorto(concepto, grupoNombre) : concepto.nombre}
             {concepto.frecuencia && concepto.frecuencia !== 'mensual' && (
               <span className="cr-frec">{getFrecuencia(concepto.frecuencia).corto}</span>
             )}
+            {gasto?.pagado && <span className="cr-pagado">✓ pagado</span>}
           </span>
           <span className="cr-cat">
-            {cat.label}{tieneItems ? ` · ${items.length} ítems` : ''}
+            {cat.nombre}{tieneItems ? ` · ${items.length} ítems` : ''}
           </span>
         </span>
 
@@ -121,6 +128,21 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, onGuardarMonto, onGuardar
         )}
       </div>
 
+      {tieneGasto && (
+        <div className={`cr-meta ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+          <label className="cr-vence">
+            Vence
+            <input type="date" value={gasto.vencimiento || ''}
+              onChange={(e) => onGuardarMeta(concepto, { vencimiento: e.target.value })} />
+          </label>
+          <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
+            <input type="checkbox" checked={Boolean(gasto.pagado)}
+              onChange={(e) => onGuardarMeta(concepto, { pagado: e.target.checked })} />
+            Pagado
+          </label>
+        </div>
+      )}
+
       {abierto && (
         <DesgloseEditor
           items={items}
@@ -137,8 +159,9 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error, total,
-    setImporte, setDetalle, agregarSuelto, borrar,
+    setImporte, setDetalle, setMeta, agregarSuelto, borrar,
   } = useGastosMes(mes);
+  const { getGrp } = useEstructura();
 
   // Mostrar los conceptos que aplican al mes (según frecuencia) o que ya
   // tengan un importe cargado. Con "ver todos", se muestran todos.
@@ -181,7 +204,7 @@ const Gastos = () => {
               </h2>
               {conceptos.length === 0 ? (
                 <p className="pg-vacio-inline">
-                  No hay conceptos. Agregalos desde la sección <strong>Conceptos</strong>.
+                  No hay conceptos. Agregalos desde la sección <strong>Estructura</strong>.
                 </p>
               ) : visibles.length === 0 ? (
                 <p className="pg-vacio-inline">
@@ -189,25 +212,28 @@ const Gastos = () => {
                 </p>
               ) : (
                 <div className="concepto-lista">
-                  {agruparConceptos(visibles).map((g) =>
-                    g.grupo ? (
-                      <div className="grupo-bloque" key={`g-${g.grupo}`}>
+                  {agruparConceptos(visibles).map((g) => {
+                    const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
+                    return grupoNombre ? (
+                      <div className="grupo-bloque" key={`g-${g.grupoId}`}>
                         <div className="grupo-head">
-                          <span className="grupo-nombre">{g.grupo}</span>
+                          <span className="grupo-nombre">{grupoNombre}</span>
                           <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(g.items, porConcepto))}</span>
                         </div>
                         {g.items.map((c) => (
-                          <ConceptoRow key={c.id} concepto={c} dentroDeGrupo
-                            gasto={porConcepto[c.id]} onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} />
+                          <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
+                            gasto={porConcepto[c.id]} onGuardarMonto={setImporte}
+                            onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
                         ))}
                       </div>
                     ) : (
                       g.items.map((c) => (
                         <ConceptoRow key={c.id} concepto={c}
-                          gasto={porConcepto[c.id]} onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} />
+                          gasto={porConcepto[c.id]} onGuardarMonto={setImporte}
+                          onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
                       ))
-                    )
-                  )}
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -226,9 +252,10 @@ const Gastos = () => {
 
 // ── Gastos sueltos (no recurrentes) ──
 const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
+  const { categorias, getCat } = useEstructura();
   const [concepto, setConcepto] = useState('');
   const [monto, setMonto]       = useState('');
-  const [categoria, setCategoria] = useState('otros');
+  const [categoriaId, setCategoriaId] = useState('');
   const [guardando, setGuardando] = useState(false);
 
   const totalSueltos = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
@@ -238,8 +265,8 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
     if (!concepto.trim() || !Number(monto)) return;
     setGuardando(true);
     try {
-      await onAgregar({ concepto, monto, categoria });
-      setConcepto(''); setMonto(''); setCategoria('otros');
+      await onAgregar({ concepto, monto, categoriaId });
+      setConcepto(''); setMonto(''); setCategoriaId('');
     } finally {
       setGuardando(false);
     }
@@ -260,9 +287,10 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
           onChange={(e) => setConcepto(e.target.value)}
           maxLength={80}
         />
-        <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-          {CATEGORIAS.map((c) => (
-            <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+        <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
+          <option value="">Categoría…</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>{c.icon} {c.nombre}</option>
           ))}
         </select>
         <input
@@ -276,13 +304,13 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
       {sueltos.length > 0 && (
         <div className="suelto-lista">
           {sueltos.map((g) => {
-            const cat = getCategoria(g.categoria);
+            const cat = getCat(g.categoriaId);
             return (
               <div className="suelto-row" key={g.id}>
                 <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
                   {cat.icon}
                 </span>
-                <span className="cr-nombre">{g.concepto}<span className="cr-cat">{cat.label}</span></span>
+                <span className="cr-nombre">{g.concepto}<span className="cr-cat">{cat.nombre}</span></span>
                 <span className="suelto-monto">{formatMoneda(g.monto)}</span>
                 <button className="suelto-borrar" onClick={() => onBorrar(g.id)} aria-label="Eliminar">🗑️</button>
               </div>

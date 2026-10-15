@@ -282,3 +282,28 @@
 }
 
 .cr-desglosar.activo { background: var(--color-primary-soft); border-color: #c7d2fe; color: var(--color-primary); }
+
+/* Meta de un gasto: vencimiento + pagado */
+.cr-meta {
+  display: flex; align-items: center; gap: 14px;
+  padding: 2px 0 8px 46px; margin-top: -2px;
+}
+.cr-meta.en-grupo { padding-left: 46px; }
+.cr-vence { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-muted); }
+.cr-vence input {
+  padding: 4px 8px; background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: 6px; color: var(--color-text); font-size: 12px; outline: none;
+}
+.cr-vence input:focus { border-color: var(--color-primary); }
+.cr-pago {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+  color: var(--color-muted); cursor: pointer;
+}
+.cr-pago.si { color: var(--color-success); }
+.cr-pago input { accent-color: var(--color-success); }
+.cr-pagado {
+  font-size: 10px; font-weight: 700; color: var(--color-success);
+  background: #ecfdf5; border-radius: 5px; padding: 1px 6px; margin-left: 6px;
+}
+
+@media (max-width: 640px) { .cr-meta { padding-left: 0; } }

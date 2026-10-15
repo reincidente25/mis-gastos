@@ -1,0 +1,45 @@
+/* src/pages/Estructura.css */
+.est-tabs {
+  display: flex; gap: 6px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: 11px; padding: 4px;
+}
+.est-tabs button {
+  flex: 1; padding: 9px; border: none; background: transparent; cursor: pointer;
+  border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--color-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.est-tabs button.activo { background: var(--color-primary-soft); color: var(--color-primary); }
+
+/* Formulario de categoría */
+.cat-form { display: grid; grid-template-columns: 1fr 80px 1fr auto; gap: 10px; align-items: center; }
+.cat-form input, .cat-form select {
+  padding: 9px 11px; background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: 8px; color: var(--color-text); font-size: 14px; outline: none;
+}
+.cat-form input:focus, .cat-form select:focus { border-color: var(--color-primary); background: #fff; }
+.est-add, .cat-form button[type="submit"] {
+  padding: 9px 14px; background: var(--color-primary); border: none; border-radius: 8px;
+  color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+
+/* Selector de color */
+.color-picker { display: flex; flex-wrap: wrap; gap: 5px; }
+.color-picker .swatch {
+  width: 22px; height: 22px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; padding: 0;
+}
+.color-picker .swatch.sel { border-color: var(--color-text); }
+.color-picker.mini .swatch { width: 16px; height: 16px; border-radius: 5px; }
+
+/* Ítems de categoría/grupo */
+.cat-item {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 11px;
+  background: var(--color-surface-2);
+}
+.cat-chip { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+.cat-item .cc-nombre-input { flex: 1; min-width: 120px; }
+
+@media (max-width: 640px) {
+  .cat-form { grid-template-columns: 1fr 1fr; }
+  .cat-form .color-picker { grid-column: 1 / -1; }
+}

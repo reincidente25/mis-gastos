@@ -7,6 +7,7 @@ import { listarConceptos } from '../services/conceptosService';
 import {
   listarGastosMes,
   guardarGastoRecurrente,
+  setMetaGasto,
   crearGastoSuelto,
   eliminarGasto,
 } from '../services/gastosService';
@@ -48,7 +49,14 @@ export const useGastosMes = (mes) => {
   const sueltos = gastos.filter((g) => !g.conceptoId);
 
   const guardar = async (concepto, datos) => {
-    const res = await guardarGastoRecurrente(hogarId, mes, concepto, datos, user.uid);
+    // Preservar vencimiento/pagado existentes al editar monto/items.
+    const actual = gastos.find((g) => g.conceptoId === concepto.id);
+    const completo = {
+      vencimiento: actual?.vencimiento ?? '',
+      pagado: actual?.pagado ?? false,
+      ...datos,
+    };
+    const res = await guardarGastoRecurrente(hogarId, mes, concepto, completo, user.uid);
     setGastos((prev) => {
       const sinEste = prev.filter((g) => g.conceptoId !== concepto.id);
       return res ? [...sinEste, res] : sinEste;
@@ -57,6 +65,14 @@ export const useGastosMes = (mes) => {
 
   const setImporte = (concepto, monto) => guardar(concepto, { monto });
   const setDetalle = (concepto, items) => guardar(concepto, { items });
+
+  // Actualiza vencimiento/pagado sin tocar el importe.
+  const setMeta = async (concepto, meta) => {
+    const actual = gastos.find((g) => g.conceptoId === concepto.id);
+    if (!actual) return; // solo si ya hay gasto cargado
+    await setMetaGasto(hogarId, mes, concepto, meta);
+    setGastos((prev) => prev.map((g) => (g.conceptoId === concepto.id ? { ...g, ...meta } : g)));
+  };
 
   const agregarSuelto = async (datos) => {
     const nuevo = await crearGastoSuelto(hogarId, mes, datos, user.uid);
@@ -74,6 +90,6 @@ export const useGastosMes = (mes) => {
   return {
     conceptos, porConcepto, sueltos, gastos,
     loading, error, total,
-    setImporte, setDetalle, agregarSuelto, borrar, recargar: cargar,
+    setImporte, setDetalle, setMeta, agregarSuelto, borrar, recargar: cargar,
   };
 };

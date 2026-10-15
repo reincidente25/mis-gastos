@@ -6,12 +6,13 @@ import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useTarjetasMes } from '../hooks/useTarjetasMes';
 import { useHogar } from '../context/HogarContext';
-import { getCategoria } from '../config/categorias';
+import { useEstructura } from '../context/EstructuraContext';
 import { formatMoneda, mesActual, mesLegible } from '../utils/format';
 import './Home.css';
 
 const Home = () => {
   const { hogar } = useHogar();
+  const { getCat } = useEstructura();
   const [mes, setMes] = useState(mesActual());
   const { gastos, loading, total } = useGastosMes(mes);
   const { total: totalTarjetas, loading: loadingT } = useTarjetasMes(mes);
@@ -19,12 +20,13 @@ const Home = () => {
   const porCategoria = useMemo(() => {
     const acc = {};
     gastos.forEach((g) => {
-      acc[g.categoria] = (acc[g.categoria] || 0) + (Number(g.monto) || 0);
+      const id = g.categoriaId || '';
+      acc[id] = (acc[id] || 0) + (Number(g.monto) || 0);
     });
     return Object.entries(acc)
-      .map(([id, monto]) => ({ cat: getCategoria(id), monto }))
+      .map(([id, monto]) => ({ cat: getCat(id), monto }))
       .sort((a, b) => b.monto - a.monto);
-  }, [gastos]);
+  }, [gastos, getCat]);
 
   const mayor = porCategoria[0]?.monto || 0;
   const cargando = loading || loadingT;
@@ -75,7 +77,7 @@ const Home = () => {
                   {porCategoria.map(({ cat, monto }) => (
                     <div className="barra-row" key={cat.id}>
                       <span className="barra-cat">
-                        <span className="barra-icon">{cat.icon}</span>{cat.label}
+                        <span className="barra-icon">{cat.icon}</span>{cat.nombre}
                       </span>
                       <div className="barra-track">
                         <div className="barra-fill"

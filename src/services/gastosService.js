@@ -7,6 +7,7 @@ import {
   collection,
   doc,
   setDoc,
+  updateDoc,
   addDoc,
   deleteDoc,
   getDocs,
@@ -52,14 +53,25 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
     mes,
     conceptoId: concepto.id,
     concepto: concepto.nombre,
-    categoria: concepto.categoria,
+    categoriaId: concepto.categoriaId || '',
+    grupoId: concepto.grupoId || '',
     monto: valor,
     items,
+    vencimiento: datos.vencimiento ?? '',
+    pagado: datos.pagado ?? false,
     updatedBy: uid,
     updatedAt: serverTimestamp(),
   };
   await setDoc(ref, payload); // reemplaza el doc (limpia items viejos si ya no hay)
   return { id, ...payload };
+};
+
+/** Actualiza solo vencimiento/pagado de un gasto existente del mes. */
+export const setMetaGasto = async (hogarId, mes, concepto, meta) => {
+  const id = `${mes}__${concepto.id}`;
+  const ref = doc(db, 'hogares', hogarId, 'gastos', id);
+  await updateDoc(ref, meta).catch(() => {}); // solo si el gasto existe
+  return { id, ...meta };
 };
 
 /** Crea un gasto suelto (no recurrente). */
@@ -68,7 +80,7 @@ export const crearGastoSuelto = async (hogarId, mes, datos, uid) => {
     mes,
     conceptoId: null,
     concepto: datos.concepto.trim(),
-    categoria: datos.categoria,
+    categoriaId: datos.categoriaId || '',
     monto: Number(datos.monto),
     createdBy: uid,
     createdAt: serverTimestamp(),

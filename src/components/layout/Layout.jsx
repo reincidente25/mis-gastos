@@ -7,9 +7,9 @@ import './Layout.css';
 const NAV_ITEMS = [
   { path: '/',          label: 'Resumen',   icon: '📊' },
   { path: '/gastos',    label: 'Gastos',    icon: '💸' },
-  { path: '/tarjetas',  label: 'Tarjetas',  icon: '💳' },
-  { path: '/conceptos', label: 'Conceptos', icon: '🗂️' },
-  { path: '/ajustes',   label: 'Ajustes',   icon: '⚙️' },
+  { path: '/tarjetas',   label: 'Tarjetas',   icon: '💳' },
+  { path: '/estructura', label: 'Estructura', icon: '🧱' },
+  { path: '/ajustes',    label: 'Ajustes',    icon: '⚙️' },
 ];
 
 const Layout = ({ children }) => {
