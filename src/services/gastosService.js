@@ -34,9 +34,19 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
   const id = `${mes}__${concepto.id}`;
   const ref = doc(db, 'hogares', hogarId, 'gastos', id);
 
+  // Peso de un ítem: si es USD, monto × cotización; si no, el monto.
+  const pesos = (it) => (it.moneda === 'usd'
+    ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
+    : (Number(it.monto) || 0));
+
   const rows = Array.isArray(datos.items)
     ? datos.items
-        .map((it) => ({ detalle: (it.detalle || '').trim(), monto: Number(it.monto) || 0 }))
+        .map((it) => ({
+          detalle: (it.detalle || '').trim(),
+          monto: Number(it.monto) || 0,
+          moneda: it.moneda === 'usd' ? 'usd' : 'ars',
+          cotizacion: Number(it.cotizacion) || 0,
+        }))
         .filter((it) => it.detalle || it.monto)
     : [];
 
@@ -45,7 +55,7 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
   const items = hayDetalle ? rows : [];
 
   const valor = rows.length
-    ? rows.reduce((a, it) => a + it.monto, 0)
+    ? rows.reduce((a, it) => a + pesos(it), 0)
     : Number(datos.monto) || 0;
 
   if ((!valor || valor <= 0) && items.length === 0) {

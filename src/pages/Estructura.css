@@ -157,3 +157,10 @@ button.concepto-chip:hover { border-color: var(--color-primary); background: #ff
 /* Resaltado al llegar desde un chip */
 .concepto-fila.resaltado { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-soft); animation: flash 1.2s ease; }
 @keyframes flash { 0% { background: var(--color-primary-soft); } 100% { background: var(--color-surface-2); } }
+
+/* Toggle USD por categoría */
+.cat-moneda {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+  font-weight: 600; color: var(--color-muted); cursor: pointer; white-space: nowrap;
+}
+.cat-moneda input { accent-color: var(--color-primary); }

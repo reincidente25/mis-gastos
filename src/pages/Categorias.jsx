@@ -87,6 +87,11 @@ const Categorias = () => {
                   {ICONOS_CATEGORIA.map((i) => <option key={i} value={i}>{i}</option>)}
                 </select>
                 <ColorDropdown value={c.color} onChange={(col) => editCategoria(c.id, { color: col })} />
+                <label className="cat-moneda" title="Permite cargar ítems en USD con cotización">
+                  <input type="checkbox" checked={!!c.moneda}
+                    onChange={(e) => editCategoria(c.id, { moneda: e.target.checked })} />
+                  USD
+                </label>
                 <button className="suelto-borrar" onClick={() => borrar(c)} title="Borrar">🗑️</button>
               </div>
             ))}

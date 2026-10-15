@@ -66,9 +66,14 @@ const VenceInput = ({ value, onCommit }) => {
 };
 
 // Editor del desglose de un concepto para el mes.
-const DesgloseEditor = ({ items, onChange }) => {
+const pesosItem = (it) => (it.moneda === 'usd'
+  ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
+  : (Number(it.monto) || 0));
+
+const DesgloseEditor = ({ items, conMoneda, onChange }) => {
+  const nuevo = () => ({ detalle: '', monto: '', moneda: 'ars', cotizacion: '' });
   const [lista, setLista] = useState(
-    items.length ? items.map((it) => ({ ...it })) : [{ detalle: '', monto: '' }]
+    items.length ? items.map((it) => ({ ...nuevo(), ...it })) : [nuevo()]
   );
 
   const commit = (next) => {
@@ -79,22 +84,30 @@ const DesgloseEditor = ({ items, onChange }) => {
     const next = lista.map((it, idx) => (idx === i ? { ...it, [campo]: val } : it));
     setLista(next); // escribir local al tipear; persistir en blur
   };
+  const cambiar = (i, campo, val) => commit(lista.map((it, idx) => (idx === i ? { ...it, [campo]: val } : it)));
   const persistir = () => onChange(lista);
-  const agregar = () => commit([...lista, { detalle: '', monto: '' }]);
+  const agregar = () => commit([...lista, nuevo()]);
   const quitar = (i) => commit(lista.filter((_, idx) => idx !== i));
 
-  const subtotal = lista.reduce((a, it) => a + (Number(it.monto) || 0), 0);
+  const subtotal = lista.reduce((a, it) => a + pesosItem(it), 0);
 
   return (
     <div className="desglose">
       {lista.map((it, i) => (
-        <div className="desglose-row" key={i}>
+        <div className={`desglose-row ${conMoneda ? 'con-moneda' : ''}`} key={i}>
           <input
             className="desglose-detalle" type="text" placeholder="Detalle (ej: Cuota)"
             value={it.detalle} maxLength={60}
             onChange={(e) => editar(i, 'detalle', e.target.value)}
             onBlur={persistir}
           />
+          {conMoneda && (
+            <select className="desglose-moneda" value={it.moneda || 'ars'}
+              onChange={(e) => cambiar(i, 'moneda', e.target.value)}>
+              <option value="ars">$ ARS</option>
+              <option value="usd">US$</option>
+            </select>
+          )}
           <input
             className="desglose-monto" type="number" min="0" step="0.01" placeholder="0"
             value={it.monto}
@@ -102,6 +115,18 @@ const DesgloseEditor = ({ items, onChange }) => {
             onBlur={persistir}
             onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
           />
+          {conMoneda && it.moneda === 'usd' && (
+            <>
+              <input
+                className="desglose-cotiz" type="number" min="0" step="0.01" placeholder="cotiz."
+                value={it.cotizacion}
+                onChange={(e) => editar(i, 'cotizacion', e.target.value)}
+                onBlur={persistir}
+                title="Cotización del dólar"
+              />
+              <span className="desglose-pesos">= {formatMoneda(pesosItem(it))}</span>
+            </>
+          )}
           <button className="suelto-borrar" onClick={() => quitar(i)} title="Quitar">✕</button>
         </div>
       ))}
@@ -118,17 +143,20 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
   const tieneItems = items.length > 0;
-  const plantilla = concepto.itemsPlantilla || [];
+  const conMoneda = Boolean(cat.moneda);
+  // Plantilla de ítems (admite formato viejo de strings).
+  const plantilla = (concepto.itemsPlantilla || []).map((p) =>
+    typeof p === 'string' ? { detalle: p, moneda: 'ars' } : p);
   const esIngreso = concepto.tipo === 'ingreso';
   // Ítems a mostrar al abrir el detalle: los del mes, la plantilla vacía,
   // el monto simple ya cargado, o una fila vacía.
   const seedItems = tieneItems
     ? items
     : plantilla.length
-    ? plantilla.map((d) => ({ detalle: d, monto: '' }))
+    ? plantilla.map((p) => ({ detalle: p.detalle, moneda: p.moneda || 'ars', monto: '', cotizacion: '' }))
     : gasto?.monto
-    ? [{ detalle: '', monto: gasto.monto }]
-    : [{ detalle: '', monto: '' }];
+    ? [{ detalle: '', monto: gasto.monto, moneda: 'ars', cotizacion: '' }]
+    : [{ detalle: '', monto: '', moneda: 'ars', cotizacion: '' }];
   const tieneGasto = Boolean(gasto);
   const estado = estadoGasto(gasto);
   const estadoLabel = esIngreso ? ESTADO_LABEL_ING[estado] : ESTADO_LABEL[estado];
@@ -175,6 +203,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
       {abierto && (
         <DesgloseEditor
           items={seedItems}
+          conMoneda={conMoneda}
           onChange={(nuevos) => onGuardarDetalle(concepto, nuevos)}
         />
       )}

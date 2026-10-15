@@ -66,11 +66,12 @@ export const useGastosMes = (mes) => {
     // nombres) en el concepto, para que se replique vacía en otros meses.
     if (datos.items) {
       const plantilla = datos.items
-        .map((it) => (it.detalle || '').trim())
-        .filter(Boolean);
-      const actualPlantilla = concepto.itemsPlantilla || [];
-      const cambio = plantilla.length !== actualPlantilla.length ||
-        plantilla.some((d, i) => d !== actualPlantilla[i]);
+        .map((it) => ({ detalle: (it.detalle || '').trim(), moneda: it.moneda === 'usd' ? 'usd' : 'ars' }))
+        .filter((it) => it.detalle);
+      const actual = (concepto.itemsPlantilla || []).map((p) =>
+        typeof p === 'string' ? { detalle: p, moneda: 'ars' } : p);
+      const cambio = plantilla.length !== actual.length ||
+        plantilla.some((p, i) => p.detalle !== actual[i]?.detalle || p.moneda !== actual[i]?.moneda);
       if (cambio) {
         await actualizarConcepto(hogarId, concepto.id, { itemsPlantilla: plantilla });
         setConceptos((prev) => prev.map((c) => (c.id === concepto.id ? { ...c, itemsPlantilla: plantilla } : c)));

@@ -13,11 +13,12 @@ export const listarCategorias = async (hogarId) => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-export const crearCategoria = async (hogarId, { nombre, icon, color }, orden) => {
+export const crearCategoria = async (hogarId, { nombre, icon, color, moneda }, orden) => {
   const payload = {
     nombre: nombre.trim(),
     icon: icon || '📦',
     color: color || '#64748b',
+    moneda: !!moneda, // admite ítems en USD con cotización
     orden: orden ?? Date.now(),
     createdAt: serverTimestamp(),
   };

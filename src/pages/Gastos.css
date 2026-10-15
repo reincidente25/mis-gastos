@@ -410,3 +410,18 @@
 button.grupo-head { width: 100%; border: none; cursor: pointer; font: inherit; }
 button.grupo-head:hover { filter: brightness(0.98); }
 .grupo-chev { font-size: 10px; margin-right: 7px; color: var(--color-primary); }
+
+/* Desglose con moneda (USD / cotización) */
+.desglose-row.con-moneda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.desglose-row.con-moneda .desglose-detalle { flex: 1 1 160px; }
+.desglose-moneda {
+  padding: 7px 8px; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 7px; color: var(--color-text); font-size: 13px; outline: none; flex: 0 0 auto;
+}
+.desglose-row.con-moneda .desglose-monto { flex: 0 0 110px; }
+.desglose-cotiz {
+  width: 100px; padding: 7px 10px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: 7px; color: var(--color-text);
+  font-size: 13px; outline: none; text-align: right;
+}
+.desglose-pesos { font-size: 12px; font-weight: 700; color: var(--color-primary); white-space: nowrap; }
