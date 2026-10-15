@@ -376,3 +376,25 @@
 .et-gasto .et-label { color: var(--color-primary); }
 .estado-tiles { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 760px) { .estado-tiles { grid-template-columns: 1fr 1fr; } }
+
+/* Tiles de estado clickeables (filtran) */
+.et { cursor: pointer; text-align: left; font: inherit; width: 100%;
+  transition: border-color .15s, box-shadow .15s; }
+.et:hover { border-color: var(--color-primary); }
+.et-n { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.et-m { font-size: 12px; color: var(--color-muted); font-weight: 600; }
+.st-pagado .et-label    { color: var(--color-success); }
+.st-pendiente .et-label { color: #b45309; }
+.st-vencido .et-label   { color: var(--color-danger); }
+.st-sincargar .et-label { color: #64748b; }
+.et.activo              { box-shadow: 0 0 0 2px var(--color-primary) inset; }
+.st-pagado.activo    { box-shadow: 0 0 0 2px #10b981 inset; border-color: #10b981; }
+.st-pendiente.activo { box-shadow: 0 0 0 2px #f59e0b inset; border-color: #f59e0b; }
+.st-vencido.activo   { box-shadow: 0 0 0 2px #ef4444 inset; border-color: #ef4444; }
+.st-sincargar.activo { box-shadow: 0 0 0 2px #94a3b8 inset; border-color: #94a3b8; }
+
+.filtro-limpiar {
+  background: #fef2f2; border: 1px solid #fecaca; color: var(--color-danger);
+  border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.filtro-limpiar:hover { background: #fee2e2; }

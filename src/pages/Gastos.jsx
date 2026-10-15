@@ -212,6 +212,7 @@ const sumaPorTipo = (conceptos, porConcepto, cond) =>
 const Gastos = () => {
   const [mes, setMes] = useState(mesActual());
   const [verTodos, setVerTodos] = useState(false);
+  const [filtro, setFiltro] = useState('todos'); // todos|pagado|pendiente|vencido|sincargar
   const {
     conceptos, porConcepto, sueltos,
     loading, error,
@@ -232,11 +233,27 @@ const Gastos = () => {
   const totalSueltos  = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
   const totalIngresos = sumaPorTipo(ingresoCs, porConcepto, () => true);
   const totalGastos   = sumaPorTipo(gastoCs, porConcepto, () => true) + totalSueltos;
-  const balance       = totalIngresos - totalGastos;
 
-  // Estado de pago (solo gastos).
-  const pendiente = sumaPorTipo(gastoCs, porConcepto, (g) => !g.pagado) + totalSueltos;
-  const faltan = gastoCs.filter((c) => !porConcepto[c.id]).length;
+  // Estadísticas por estado, CONTADAS A NIVEL CONCEPTO (no por grupo).
+  const stats = { pagado: { n: 0, m: 0 }, pendiente: { n: 0, m: 0 }, vencido: { n: 0, m: 0 }, sincargar: { n: 0, m: 0 } };
+  gastoCs.forEach((c) => {
+    const g = porConcepto[c.id];
+    const e = estadoGasto(g);
+    stats[e].n += 1;
+    stats[e].m += Number(g?.monto) || 0;
+  });
+
+  // Lista de gastos aplicando el filtro por estado.
+  const gastosFiltrados = filtro === 'todos'
+    ? gastoCs
+    : gastoCs.filter((c) => estadoGasto(porConcepto[c.id]) === filtro);
+
+  const TILES = [
+    { key: 'pagado',    label: '✓ Pagados',   clase: 'st-pagado' },
+    { key: 'pendiente', label: '● Sin pagar',  clase: 'st-pendiente' },
+    { key: 'vencido',   label: '⚠ Vencidos',  clase: 'st-vencido' },
+    { key: 'sincargar', label: 'Sin cargar',  clase: 'st-sincargar' },
+  ];
 
   return (
     <Layout>
@@ -249,29 +266,18 @@ const Gastos = () => {
           <MesSelector mes={mes} onChange={setMes} />
         </header>
 
-        <div className={`total-card ${balance < 0 ? 'neg' : ''}`}>
-          <span className="tc-label">Balance del mes</span>
-          <span className="tc-valor">{formatMoneda(balance)}</span>
-          <span className="tc-sub">{formatMoneda(totalIngresos)} ingresos − {formatMoneda(totalGastos)} gastos</span>
-        </div>
-
         <div className="estado-tiles">
-          <div className="et et-ingreso">
-            <span className="et-label">💰 Ingresos</span>
-            <span className="et-valor">{formatMoneda(totalIngresos)}</span>
-          </div>
-          <div className="et et-gasto">
-            <span className="et-label">💸 Gastos</span>
-            <span className="et-valor">{formatMoneda(totalGastos)}</span>
-          </div>
-          <div className="et et-pendiente">
-            <span className="et-label">● Pendiente de pago</span>
-            <span className="et-valor">{formatMoneda(pendiente)}</span>
-          </div>
-          <div className="et et-faltan">
-            <span className="et-label">Falta cargar</span>
-            <span className="et-valor">{faltan}</span>
-          </div>
+          {TILES.map((t) => (
+            <button
+              key={t.key}
+              className={`et ${t.clase} ${filtro === t.key ? 'activo' : ''}`}
+              onClick={() => setFiltro((f) => (f === t.key ? 'todos' : t.key))}
+            >
+              <span className="et-label">{t.label}</span>
+              <span className="et-n">{stats[t.key].n}</span>
+              <span className="et-m">{formatMoneda(stats[t.key].m)}</span>
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -286,7 +292,7 @@ const Gastos = () => {
           </section>
         ) : (
           <>
-            {ingresoCs.length > 0 && (
+            {filtro === 'todos' && ingresoCs.length > 0 && (
               <section className="card">
                 <h2 className="card-titulo">
                   <span>💰 Ingresos <span className="card-sub">{formatMoneda(totalIngresos)}</span></span>
@@ -299,17 +305,24 @@ const Gastos = () => {
             <section className="card">
               <h2 className="card-titulo">
                 <span>💸 Gastos <span className="card-sub">{formatMoneda(totalGastos)}</span></span>
-                {conceptos.length > 0 && (
-                  <label className="ver-todos">
-                    <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
-                    Ver todos{!verTodos && ocultos > 0 ? ` (+${ocultos})` : ''}
-                  </label>
-                )}
+                <div className="cc-titulo-acciones">
+                  {filtro !== 'todos' && (
+                    <button className="filtro-limpiar" onClick={() => setFiltro('todos')}>✕ Quitar filtro</button>
+                  )}
+                  {conceptos.length > 0 && (
+                    <label className="ver-todos">
+                      <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
+                      Ver todos{!verTodos && ocultos > 0 ? ` (+${ocultos})` : ''}
+                    </label>
+                  )}
+                </div>
               </h2>
               {gastoCs.length === 0 ? (
                 <p className="pg-vacio-inline">Sin gastos este mes.</p>
+              ) : gastosFiltrados.length === 0 ? (
+                <p className="pg-vacio-inline">Ningún gasto en ese estado.</p>
               ) : (
-                <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
+                <ListaConceptos lista={gastosFiltrados} porConcepto={porConcepto} getGrp={getGrp}
                   onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
               )}
             </section>
