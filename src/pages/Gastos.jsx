@@ -155,8 +155,10 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
 
         {tieneGasto && (
           <div className="cr-inline-meta">
-            <VenceInput value={gasto.vencimiento}
-              onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
+            {!esIngreso && (
+              <VenceInput value={gasto.vencimiento}
+                onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
+            )}
             <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
               <input type="checkbox" checked={Boolean(gasto.pagado)}
                 onChange={(e) => onGuardarMeta(concepto, { pagado: e.target.checked })} />
