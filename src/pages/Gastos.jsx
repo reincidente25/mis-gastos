@@ -2,109 +2,152 @@
 import { useState } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
-import GastoForm from '../components/GastoForm';
-import { useGastos } from '../hooks/useGastos';
-import { getCategoria } from '../config/categorias';
-import { formatMoneda, mesActual, fechaCorta } from '../utils/format';
+import AmountInput from '../components/AmountInput';
+import { useGastosMes } from '../hooks/useGastosMes';
+import { CATEGORIAS, getCategoria } from '../config/categorias';
+import { formatMoneda, mesActual } from '../utils/format';
 import './Gastos.css';
 
 const Gastos = () => {
-  const [mes, setMes]         = useState(mesActual());
-  const [editando, setEditando] = useState(null);
-  const { gastos, loading, error, total, agregar, editar, borrar } = useGastos(mes);
-
-  const handleGuardar = async (datos) => {
-    if (editando) {
-      await editar(editando.id, datos);
-      setEditando(null);
-    } else {
-      await agregar(datos);
-    }
-  };
-
-  const handleBorrar = async (gasto) => {
-    if (window.confirm(`¿Eliminar "${gasto.descripcion}"?`)) {
-      await borrar(gasto.id);
-    }
-  };
+  const [mes, setMes] = useState(mesActual());
+  const {
+    conceptos, porConcepto, sueltos,
+    loading, error, total,
+    setImporte, agregarSuelto, borrar,
+  } = useGastosMes(mes);
 
   return (
     <Layout>
       <div className="gastos-page">
-        <header className="gastos-header">
+        <header className="pg-header">
           <div>
             <h1>💸 Gastos</h1>
-            <p className="gastos-sub">Registrá y seguí tus gastos del mes</p>
+            <p className="pg-sub">Completá el importe de cada concepto del mes</p>
           </div>
           <MesSelector mes={mes} onChange={setMes} />
         </header>
 
-        <div className="gastos-total-card">
-          <span className="gtc-label">Total del mes</span>
-          <span className="gtc-valor">{formatMoneda(total)}</span>
-          <span className="gtc-count">
-            {gastos.length} {gastos.length === 1 ? 'gasto' : 'gastos'}
-          </span>
+        <div className="total-card">
+          <span className="tc-label">Total del mes</span>
+          <span className="tc-valor">{formatMoneda(total)}</span>
         </div>
 
-        <GastoForm
-          gasto={editando}
-          onGuardar={handleGuardar}
-          onCancelar={() => setEditando(null)}
-        />
-
-        <section className="gastos-lista">
-          {loading ? (
-            <div className="gastos-centro"><div className="spinner" /></div>
-          ) : error ? (
-            <p className="gastos-error">{error}</p>
-          ) : gastos.length === 0 ? (
-            <div className="gastos-vacio">
-              <span className="gv-icon">🗒️</span>
-              <p>No hay gastos este mes.</p>
-              <small>Agregá el primero con el formulario de arriba.</small>
-            </div>
-          ) : (
-            gastos.map((g) => {
-              const cat = getCategoria(g.categoria);
-              return (
-                <div className="gasto-item" key={g.id}>
-                  <span
-                    className="gi-icono"
-                    style={{ background: `${cat.color}22`, color: cat.color }}
-                  >
-                    {cat.icon}
-                  </span>
-                  <div className="gi-info">
-                    <span className="gi-desc">{g.descripcion}</span>
-                    <span className="gi-meta">
-                      {cat.label} · {fechaCorta(g.fecha)}
-                    </span>
-                  </div>
-                  <span className="gi-monto">{formatMoneda(g.monto)}</span>
-                  <div className="gi-acciones">
-                    <button
-                      className="gi-btn"
-                      onClick={() => setEditando(g)}
-                      aria-label="Editar"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="gi-btn gi-btn-borrar"
-                      onClick={() => handleBorrar(g)}
-                      aria-label="Eliminar"
-                    >
-                      🗑️
-                    </button>
-                  </div>
+        {loading ? (
+          <div className="pg-centro"><div className="spinner" /></div>
+        ) : error ? (
+          <p className="pg-error">{error}</p>
+        ) : (
+          <>
+            <section className="card">
+              <h2 className="card-titulo">Conceptos recurrentes</h2>
+              {conceptos.length === 0 ? (
+                <p className="pg-vacio-inline">
+                  No hay conceptos. Agregalos desde la sección <strong>Conceptos</strong>.
+                </p>
+              ) : (
+                <div className="concepto-lista">
+                  {conceptos.map((c) => {
+                    const cat = getCategoria(c.categoria);
+                    const actual = porConcepto[c.id]?.monto;
+                    return (
+                      <div className="concepto-row" key={c.id}>
+                        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
+                          {cat.icon}
+                        </span>
+                        <span className="cr-nombre">
+                          {c.nombre}
+                          <span className="cr-cat">{cat.label}</span>
+                        </span>
+                        <AmountInput
+                          value={actual}
+                          onCommit={(monto) => setImporte(c, monto)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })
-          )}
-        </section>
+              )}
+            </section>
+
+            <GastosSueltos
+              sueltos={sueltos}
+              onAgregar={agregarSuelto}
+              onBorrar={borrar}
+            />
+          </>
+        )}
       </div>
     </Layout>
+  );
+};
+
+// ── Gastos sueltos (no recurrentes) ──
+const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
+  const [concepto, setConcepto] = useState('');
+  const [monto, setMonto]       = useState('');
+  const [categoria, setCategoria] = useState('otros');
+  const [guardando, setGuardando] = useState(false);
+
+  const totalSueltos = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
+
+  const handleAgregar = async (e) => {
+    e.preventDefault();
+    if (!concepto.trim() || !Number(monto)) return;
+    setGuardando(true);
+    try {
+      await onAgregar({ concepto, monto, categoria });
+      setConcepto(''); setMonto(''); setCategoria('otros');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <section className="card">
+      <h2 className="card-titulo">
+        Gastos del mes (sueltos)
+        {sueltos.length > 0 && <span className="card-sub">{formatMoneda(totalSueltos)}</span>}
+      </h2>
+
+      <form className="suelto-form" onSubmit={handleAgregar}>
+        <input
+          type="text"
+          placeholder="Concepto (ej: Super, Farmacia)"
+          value={concepto}
+          onChange={(e) => setConcepto(e.target.value)}
+          maxLength={80}
+        />
+        <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+          {CATEGORIAS.map((c) => (
+            <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+          ))}
+        </select>
+        <input
+          type="number" min="0" step="0.01" placeholder="Monto"
+          value={monto}
+          onChange={(e) => setMonto(e.target.value)}
+        />
+        <button type="submit" disabled={guardando}>+ Agregar</button>
+      </form>
+
+      {sueltos.length > 0 && (
+        <div className="suelto-lista">
+          {sueltos.map((g) => {
+            const cat = getCategoria(g.categoria);
+            return (
+              <div className="suelto-row" key={g.id}>
+                <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
+                  {cat.icon}
+                </span>
+                <span className="cr-nombre">{g.concepto}<span className="cr-cat">{cat.label}</span></span>
+                <span className="suelto-monto">{formatMoneda(g.monto)}</span>
+                <button className="suelto-borrar" onClick={() => onBorrar(g.id)} aria-label="Eliminar">🗑️</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 };
 

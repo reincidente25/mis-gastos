@@ -15,10 +15,19 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-    });
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (firebaseUser) => {
+        setUser(firebaseUser);
+        setLoading(false);
+      },
+      (err) => {
+        // Config inválida o error de red: no bloquear la app con pantalla en blanco.
+        console.error('Auth error:', err);
+        setUser(null);
+        setLoading(false);
+      }
+    );
     return unsubscribe;
   }, []);
 

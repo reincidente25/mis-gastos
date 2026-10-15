@@ -1,38 +1,64 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import PrivateRoute from './components/common/PrivateRoute';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { HogarProvider, useHogar } from './context/HogarContext';
 
 // Pages
-import Login  from './pages/Login';
-import Home   from './pages/Home';
-import Gastos from './pages/Gastos';
+import Login      from './pages/Login';
+import Onboarding from './pages/Onboarding';
+import Home       from './pages/Home';
+import Gastos     from './pages/Gastos';
+import Tarjetas   from './pages/Tarjetas';
+import Conceptos  from './pages/Conceptos';
+import Ajustes    from './pages/Ajustes';
 
-const App = () => {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+const Pantalla = ({ children }) => (
+  <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+    {children}
+  </div>
+);
 
-          {/* Pública */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Privadas */}
-          <Route path="/" element={
-            <PrivateRoute><Home /></PrivateRoute>
-          } />
-
-          <Route path="/gastos" element={
-            <PrivateRoute><Gastos /></PrivateRoute>
-          } />
-
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+// Requiere usuario logueado.
+const RequireAuth = ({ children }) => {
+  const { user } = useAuth();
+  return user ? children : <Navigate to="/login" replace />;
 };
+
+// Requiere usuario + hogar configurado.
+const RequireHogar = ({ children }) => {
+  const { user } = useAuth();
+  const { hogar, loading } = useHogar();
+  if (!user) return <Navigate to="/login" replace />;
+  if (loading) return <Pantalla><div className="spinner" /></Pantalla>;
+  return hogar ? children : <Navigate to="/onboarding" replace />;
+};
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/login" element={<Login />} />
+
+    <Route path="/onboarding" element={
+      <RequireAuth><Onboarding /></RequireAuth>
+    } />
+
+    <Route path="/"          element={<RequireHogar><Home /></RequireHogar>} />
+    <Route path="/gastos"    element={<RequireHogar><Gastos /></RequireHogar>} />
+    <Route path="/tarjetas"  element={<RequireHogar><Tarjetas /></RequireHogar>} />
+    <Route path="/conceptos" element={<RequireHogar><Conceptos /></RequireHogar>} />
+    <Route path="/ajustes"   element={<RequireHogar><Ajustes /></RequireHogar>} />
+
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
+
+const App = () => (
+  <AuthProvider>
+    <HogarProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </HogarProvider>
+  </AuthProvider>
+);
 
 export default App;

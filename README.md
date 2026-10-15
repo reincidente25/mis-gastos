@@ -1,108 +1,76 @@
 # 💸 Mis Gastos
 
-App de gastos mensuales con autenticación por email y **Firebase Firestore** como base de datos. Cada usuario ve y gestiona únicamente sus propios gastos.
+App de gastos mensuales **compartida en pareja**, con autenticación por email y **Firebase Firestore**. Está modelada sobre una planilla real: cada mes es una lista de **conceptos recurrentes** (ESBA, Seguro, Expensas, servicios, terapias…) donde solo completás el importe, más gastos sueltos y un bloque aparte de **tarjetas**.
 
 ## Stack
 
 - **React 18** + **Vite 5**
 - **Firebase 10** — Authentication (email/password) + Firestore
 - **React Router 6**
-- CSS por componente (sin frameworks)
+- CSS por componente, **tema claro**
 
 ## Funcionalidades
 
 - 🔐 Login y registro con email/contraseña
-- ➕ Alta, edición y borrado de gastos
-- 🗂️ Categorías (comida, transporte, vivienda, servicios, ocio, salud, compras, otros)
-- 📅 Navegación por mes
-- 📊 Resumen mensual: total gastado, movimientos y desglose por categoría
-- 📱 Diseño responsive (sidebar + vista mobile)
-
-## Estructura
-
-```
-src/
-├── config/
-│   ├── firebase.js          ← Inicialización de Firebase
-│   └── categorias.js        ← Catálogo de categorías
-├── context/
-│   └── AuthContext.jsx       ← Auth global + useAuth
-├── hooks/
-│   └── useGastos.js          ← Carga/CRUD de gastos del mes
-├── services/
-│   └── gastosService.js      ← Acceso a Firestore
-├── components/
-│   ├── common/PrivateRoute.jsx
-│   ├── layout/Layout.jsx + .css
-│   ├── MesSelector.jsx + .css
-│   └── GastoForm.jsx + .css
-├── pages/
-│   ├── Login.jsx + .css       ← Login / registro
-│   ├── Home.jsx + .css        ← Resumen del mes
-│   └── Gastos.jsx + .css      ← CRUD de gastos
-├── utils/format.js           ← Formato de moneda y fechas
-├── App.jsx · main.jsx · index.css
-```
+- 🏠 **Hogar compartido**: ambos inician sesión con su cuenta y ven/editan el mismo presupuesto (se invita con un código)
+- 🗂️ **Conceptos recurrentes**: las filas fijas de cada mes; solo cargás el importe
+- ➕ Gastos sueltos por mes
+- 💳 **Tarjetas**: resumen mensual por tarjeta, separado del total de gastos
+- 📊 Resumen del mes: gastos, tarjetas, total general y desglose por categoría
+- 📅 Navegación por mes · 📱 responsive
 
 ## Modelo de datos (Firestore)
 
-Colección **`gastos`**, un documento por gasto:
+```
+usuarios/{uid}                     { email, hogarId }
+hogares/{hogarId}                  { nombre, codigo, miembros[], createdBy }
+  ├── conceptos/{id}               { nombre, categoria, orden, activo }
+  ├── gastos/{id}                  { mes, conceptoId|null, concepto, categoria, monto }
+  ├── tarjetas/{id}                { nombre, orden, activa }
+  └── resumenesTarjeta/{id}        { mes, tarjetaId, tarjetaNombre, monto }
+```
 
-| Campo        | Tipo      | Ejemplo        |
-|--------------|-----------|----------------|
-| `uid`        | string    | uid del usuario |
-| `descripcion`| string    | "Supermercado" |
-| `monto`      | number    | 15000          |
-| `categoria`  | string    | "comida"       |
-| `fecha`      | string    | "2026-10-15"   |
-| `mes`        | string    | "2026-10"      |
-| `createdAt`  | timestamp | (server)       |
-
-El campo `mes` se guarda derivado de `fecha` para poder consultar por mes de forma eficiente.
+- `mes` es `YYYY-MM`. Los gastos recurrentes usan id `${mes}__${conceptoId}` (upsert sin duplicados).
+- Los datos financieros viven bajo el hogar; las reglas solo permiten acceso a sus **miembros**.
 
 ## Setup
 
 ### 1. Crear el proyecto en Firebase
-
-1. Entrá a [console.firebase.google.com](https://console.firebase.google.com) y creá un proyecto.
+1. [console.firebase.google.com](https://console.firebase.google.com) → nuevo proyecto.
 2. **Authentication → Sign-in method →** activá **Email/Password**.
-3. **Firestore Database →** creá la base en modo producción.
+3. **Firestore Database →** creá la base.
 4. **Project settings → Your apps →** registrá una app web y copiá las credenciales.
 
 ### 2. Variables de entorno
-
 ```bash
-cp .env.example .env
+cp .env.example .env    # y completá con tus credenciales
 ```
 
-Completá `.env` con tus credenciales de Firebase.
-
-### 3. Reglas e índices de Firestore
-
-Las reglas (`firestore.rules`) restringen cada gasto a su dueño. El índice compuesto
-(`firestore.indexes.json`) es necesario para la consulta por `uid` + `mes` ordenada por `fecha`.
-
-Con la [Firebase CLI](https://firebase.google.com/docs/cli):
-
+### 3. Reglas de Firestore
+No se necesitan índices compuestos (las consultas son por igualdad). Desplegá las reglas:
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules
 ```
+o pegá `firestore.rules` en la consola de Firebase.
 
-> Si no usás la CLI: pegá el contenido de `firestore.rules` en la consola de Firebase,
-> y creá el índice compuesto cuando la app te muestre el enlace en la consola del navegador.
-
-### 4. Correr en desarrollo
-
+### 4. Correr
 ```bash
 npm install
 npm run dev
 ```
 
+## Uso en pareja
+
+1. Uno de los dos se registra y, en el onboarding, elige **Crear hogar** (arranca con los conceptos y tarjetas típicos ya cargados).
+2. En **Ajustes** copia el **código de invitación**.
+3. La otra persona se registra y elige **Unirme con código**.
+4. Desde ahí, ambos ven y editan el mismo presupuesto.
+
 ## Scripts
 
-| Comando           | Descripción                 |
-|-------------------|-----------------------------|
-| `npm run dev`     | Servidor de desarrollo      |
-| `npm run build`   | Build de producción         |
-| `npm run preview` | Previsualizar el build      |
-| `npm run lint`    | Linter                      |
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Desarrollo |
+| `npm run build` | Build de producción |
+| `npm run preview` | Previsualizar el build |
+| `npm run lint` | Linter |

@@ -1,23 +1,44 @@
 rules_version = '2';
 
-// Reglas de seguridad de Firestore para Mis Gastos.
-// Cada usuario solo puede leer y escribir sus propios gastos.
+// Reglas de seguridad para Mis Gastos (presupuesto compartido por hogar).
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /gastos/{gastoId} {
-      // Solo usuarios autenticados cuyo uid coincide con el del documento.
-      allow read, delete: if request.auth != null
-                          && request.auth.uid == resource.data.uid;
+    function autenticado() {
+      return request.auth != null;
+    }
 
-      allow create: if request.auth != null
-                    && request.auth.uid == request.resource.data.uid
-                    && request.resource.data.monto is number
-                    && request.resource.data.monto > 0;
+    // ¿El usuario es miembro del hogar?
+    function esMiembro(hogarId) {
+      return autenticado()
+        && request.auth.uid in get(/databases/$(database)/documents/hogares/$(hogarId)).data.miembros;
+    }
 
-      allow update: if request.auth != null
-                    && request.auth.uid == resource.data.uid
-                    && request.resource.data.uid == resource.data.uid;
+    // Perfil de cada usuario: solo el dueño.
+    match /usuarios/{uid} {
+      allow read, write: if autenticado() && request.auth.uid == uid;
+    }
+
+    // Documento del hogar.
+    match /hogares/{hogarId} {
+      // Lectura abierta a autenticados (permite buscar por código para unirse).
+      allow read: if autenticado();
+
+      // Crear: el creador debe quedar como miembro.
+      allow create: if autenticado()
+        && request.auth.uid in request.resource.data.miembros;
+
+      // Actualizar: debe seguir siendo miembro al terminar
+      // (permite unirse agregándose a sí mismo, y editar siendo miembro).
+      allow update: if autenticado()
+        && request.auth.uid in request.resource.data.miembros;
+
+      allow delete: if false;
+
+      // Subcolecciones con los datos financieros: solo miembros.
+      match /{documento=**} {
+        allow read, write: if esMiembro(hogarId);
+      }
     }
   }
 }

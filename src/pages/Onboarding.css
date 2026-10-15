@@ -1,0 +1,48 @@
+/* src/pages/Onboarding.css */
+.onb-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--color-bg); padding: 20px;
+}
+.onb-card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 440px;
+  text-align: center; box-shadow: var(--shadow-md);
+}
+.onb-logo { font-size: 40px; margin-bottom: 10px; }
+.onb-titulo { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.onb-sub { font-size: 14px; color: var(--color-muted); margin-bottom: 22px; }
+
+.onb-tabs {
+  display: flex; gap: 6px; background: var(--color-surface-2);
+  border: 1px solid var(--color-border); border-radius: 10px; padding: 4px; margin-bottom: 20px;
+}
+.onb-tabs button {
+  flex: 1; padding: 9px; border: none; background: transparent; cursor: pointer;
+  border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--color-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.onb-tabs button.activo { background: var(--color-surface); color: var(--color-primary); box-shadow: var(--shadow-sm); }
+
+.onb-form { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.onb-form label { font-size: 13px; color: var(--color-muted); }
+.onb-form input {
+  padding: 11px 14px; background: var(--color-surface-2);
+  border: 1px solid var(--color-border); border-radius: 9px;
+  color: var(--color-text); font-size: 15px; outline: none;
+}
+.onb-form input:focus { border-color: var(--color-primary); background: #fff; }
+
+.onb-hint { font-size: 12px; color: var(--color-muted); }
+.onb-error { color: var(--color-danger); font-size: 13px; }
+
+.onb-btn {
+  margin-top: 6px; padding: 12px; background: var(--color-primary); border: none;
+  border-radius: 9px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.onb-btn:hover { opacity: 0.92; }
+.onb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.onb-logout {
+  margin-top: 20px; background: none; border: none; color: var(--color-muted);
+  font-size: 13px; cursor: pointer; text-decoration: underline;
+}

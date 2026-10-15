@@ -1,22 +1,6 @@
 /* src/components/layout/Layout.css */
 
-:root {
-  --sidebar-width: 240px;
-  --color-bg:       #0f1117;
-  --color-surface:  #1a1d27;
-  --color-border:   #2a2d3e;
-  --color-primary:  #6366f1;
-  --color-text:     #e2e8f0;
-  --color-muted:    #64748b;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: 'Segoe UI', system-ui, sans-serif;
-}
+:root { --sidebar-width: 240px; }
 
 /* ── Layout general ── */
 .layout {
