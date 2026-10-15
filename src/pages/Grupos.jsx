@@ -15,8 +15,8 @@ const Grupos = () => {
   const navigate = useNavigate();
   const [nombre, setNombre] = useState('');
   const [conceptos, setConceptos] = useState([]);
-  const [cerrados, setCerrados] = useState({});
-  const toggle = (id) => setCerrados((c) => ({ ...c, [id]: !c[id] }));
+  const [abiertos, setAbiertos] = useState({});
+  const toggle = (id) => setAbiertos((a) => ({ ...a, [id]: !a[id] }));
 
   const cargar = useCallback(async () => {
     if (!hogarId) return;
@@ -77,7 +77,7 @@ const Grupos = () => {
           <div className="arbol-lista">
             {grupos.map((g) => {
               const items = conceptosDe(g.id);
-              const abierto = !cerrados[g.id];
+              const abierto = !!abiertos[g.id];
               return (
                 <div className="grupo-arbol" key={g.id}>
                   <div className="grupo-arbol-head" onClick={() => toggle(g.id)}>
