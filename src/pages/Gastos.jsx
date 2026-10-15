@@ -234,19 +234,18 @@ const Gastos = () => {
   const totalIngresos = sumaPorTipo(ingresoCs, porConcepto, () => true);
   const totalGastos   = sumaPorTipo(gastoCs, porConcepto, () => true) + totalSueltos;
 
-  // Estadísticas por estado, CONTADAS A NIVEL CONCEPTO (no por grupo).
+  // Estadísticas por estado, A NIVEL CONCEPTO (no por grupo), incluyendo
+  // gastos e ingresos.
   const stats = { pagado: { n: 0, m: 0 }, pendiente: { n: 0, m: 0 }, vencido: { n: 0, m: 0 }, sincargar: { n: 0, m: 0 } };
-  gastoCs.forEach((c) => {
+  visibles.forEach((c) => {
     const g = porConcepto[c.id];
     const e = estadoGasto(g);
     stats[e].n += 1;
     stats[e].m += Number(g?.monto) || 0;
   });
 
-  // Lista de gastos aplicando el filtro por estado.
-  const gastosFiltrados = filtro === 'todos'
-    ? gastoCs
-    : gastoCs.filter((c) => estadoGasto(porConcepto[c.id]) === filtro);
+  // Al filtrar por estado, la lista combina gastos e ingresos.
+  const filtrados = visibles.filter((c) => estadoGasto(porConcepto[c.id]) === filtro);
 
   const TILES = [
     { key: 'pagado',    label: '✓ Pagados',   clase: 'st-pagado' },
@@ -292,46 +291,60 @@ const Gastos = () => {
           </section>
         ) : (
           <>
-            {filtro === 'todos' && ingresoCs.length > 0 && (
+            {filtro !== 'todos' ? (
+              /* Vista filtrada: gastos + ingresos que están en ese estado */
               <section className="card">
                 <h2 className="card-titulo">
-                  <span>💰 Ingresos <span className="card-sub">{formatMoneda(totalIngresos)}</span></span>
+                  <span>{TILES.find((t) => t.key === filtro)?.label}
+                    {' '}<span className="card-sub">{stats[filtro].n} · {formatMoneda(stats[filtro].m)}</span></span>
+                  <button className="filtro-limpiar" onClick={() => setFiltro('todos')}>✕ Quitar filtro</button>
                 </h2>
-                <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
-                  onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                {filtrados.length === 0 ? (
+                  <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
+                ) : (
+                  <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
+                    onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                )}
               </section>
+            ) : (
+              <>
+                {ingresoCs.length > 0 && (
+                  <section className="card">
+                    <h2 className="card-titulo">
+                      <span>💰 Ingresos <span className="card-sub">{formatMoneda(totalIngresos)}</span></span>
+                    </h2>
+                    <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
+                      onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                  </section>
+                )}
+
+                <section className="card">
+                  <h2 className="card-titulo">
+                    <span>💸 Gastos <span className="card-sub">{formatMoneda(totalGastos)}</span></span>
+                    {conceptos.length > 0 && (
+                      <label className="ver-todos">
+                        <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
+                        Ver todos{!verTodos && ocultos > 0 ? ` (+${ocultos})` : ''}
+                      </label>
+                    )}
+                  </h2>
+                  {gastoCs.length === 0 ? (
+                    <p className="pg-vacio-inline">Sin gastos este mes.</p>
+                  ) : (
+                    <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
+                      onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                  )}
+                </section>
+              </>
             )}
 
-            <section className="card">
-              <h2 className="card-titulo">
-                <span>💸 Gastos <span className="card-sub">{formatMoneda(totalGastos)}</span></span>
-                <div className="cc-titulo-acciones">
-                  {filtro !== 'todos' && (
-                    <button className="filtro-limpiar" onClick={() => setFiltro('todos')}>✕ Quitar filtro</button>
-                  )}
-                  {conceptos.length > 0 && (
-                    <label className="ver-todos">
-                      <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
-                      Ver todos{!verTodos && ocultos > 0 ? ` (+${ocultos})` : ''}
-                    </label>
-                  )}
-                </div>
-              </h2>
-              {gastoCs.length === 0 ? (
-                <p className="pg-vacio-inline">Sin gastos este mes.</p>
-              ) : gastosFiltrados.length === 0 ? (
-                <p className="pg-vacio-inline">Ningún gasto en ese estado.</p>
-              ) : (
-                <ListaConceptos lista={gastosFiltrados} porConcepto={porConcepto} getGrp={getGrp}
-                  onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
-              )}
-            </section>
-
-            <GastosSueltos
-              sueltos={sueltos}
-              onAgregar={agregarSuelto}
-              onBorrar={borrar}
-            />
+            {filtro === 'todos' && (
+              <GastosSueltos
+                sueltos={sueltos}
+                onAgregar={agregarSuelto}
+                onBorrar={borrar}
+              />
+            )}
           </>
         )}
       </div>
