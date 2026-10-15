@@ -7,6 +7,7 @@ import './Layout.css';
 const NAV_ITEMS = [
   { path: '/',          label: 'Resumen',   icon: '📊' },
   { path: '/gastos',    label: 'Gastos',    icon: '💸' },
+  { path: '/tabla',     label: 'Tabla',     icon: '📋' },
   { path: '/categorias', label: 'Categorías', icon: '🏷️' },
   { path: '/conceptos',  label: 'Conceptos',  icon: '📄' },
   { path: '/grupos',     label: 'Grupos',     icon: '📁' },

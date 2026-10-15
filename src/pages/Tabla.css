@@ -1,0 +1,50 @@
+/* src/pages/Tabla.css */
+.tabla-acciones { display: flex; align-items: center; gap: 14px; }
+.tablas-wrap { display: flex; flex-direction: column; gap: 22px; }
+
+.tabla-excel {
+  width: 100%; max-width: 640px; border-collapse: collapse;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm);
+  font-size: 13px;
+}
+.tabla-excel th, .tabla-excel td {
+  border: 1px solid var(--color-border); padding: 6px 12px; text-align: left;
+}
+.tabla-excel .th-titulo {
+  background: var(--color-primary); color: #fff; text-align: center;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px; padding: 8px;
+}
+.tabla-excel thead tr:nth-child(2) th {
+  background: var(--color-primary-soft); color: var(--color-primary);
+  font-size: 12px; font-weight: 700;
+}
+.th-imp, .td-imp { text-align: right; white-space: nowrap; width: 150px; }
+
+.td-concepto { color: var(--color-text); }
+.td-indent { display: inline-block; width: 16px; }
+.td-items { color: var(--color-muted); font-size: 11px; margin-left: 4px; }
+
+.tb-imp { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tb-imp.vacio { color: var(--color-muted); font-weight: 500; }
+
+/* Concepto sin importe en rojo, como la planilla */
+.fila-vacia .td-concepto { color: var(--color-danger); }
+
+/* Fila de grupo (subtotal) */
+.fila-grupo td { background: var(--color-surface-2); font-weight: 700; }
+.fila-grupo .td-imp { color: var(--color-primary); }
+
+/* Total */
+.tabla-excel tfoot .fila-total td {
+  background: var(--color-primary-soft); font-weight: 800; font-size: 14px;
+  color: var(--color-primary); border-top: 2px solid var(--color-primary);
+}
+.fila-total .td-imp { font-variant-numeric: tabular-nums; }
+
+.td-imp { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 560px) {
+  .tabla-excel { max-width: 100%; font-size: 12px; }
+  .th-imp, .td-imp { width: 110px; }
+}
