@@ -35,24 +35,103 @@ const nombreCorto = (c) => {
   return c.nombre;
 };
 
-const ConceptoRow = ({ concepto, valor, onCommit, dentroDeGrupo }) => {
-  const cat = getCategoria(concepto.categoria);
+// Editor del desglose de un concepto para el mes.
+const DesgloseEditor = ({ items, onChange }) => {
+  const [lista, setLista] = useState(
+    items.length ? items.map((it) => ({ ...it })) : [{ detalle: '', monto: '' }]
+  );
+
+  const commit = (next) => {
+    setLista(next);
+    onChange(next);
+  };
+  const editar = (i, campo, val) => {
+    const next = lista.map((it, idx) => (idx === i ? { ...it, [campo]: val } : it));
+    setLista(next); // escribir local al tipear; persistir en blur
+  };
+  const persistir = () => onChange(lista);
+  const agregar = () => commit([...lista, { detalle: '', monto: '' }]);
+  const quitar = (i) => commit(lista.filter((_, idx) => idx !== i));
+
+  const subtotal = lista.reduce((a, it) => a + (Number(it.monto) || 0), 0);
+
   return (
-    <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
-      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
-        {cat.icon}
-      </span>
-      <span className="cr-nombre">
-        <span>
-          {dentroDeGrupo ? nombreCorto(concepto) : concepto.nombre}
-          {concepto.frecuencia && concepto.frecuencia !== 'mensual' && (
-            <span className="cr-frec">{getFrecuencia(concepto.frecuencia).corto}</span>
-          )}
-        </span>
-        <span className="cr-cat">{cat.label}</span>
-      </span>
-      <AmountInput value={valor} onCommit={(monto) => onCommit(concepto, monto)} />
+    <div className="desglose">
+      {lista.map((it, i) => (
+        <div className="desglose-row" key={i}>
+          <input
+            className="desglose-detalle" type="text" placeholder="Detalle (ej: Cuota)"
+            value={it.detalle} maxLength={60}
+            onChange={(e) => editar(i, 'detalle', e.target.value)}
+            onBlur={persistir}
+          />
+          <input
+            className="desglose-monto" type="number" min="0" step="0.01" placeholder="0"
+            value={it.monto}
+            onChange={(e) => editar(i, 'monto', e.target.value)}
+            onBlur={persistir}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          />
+          <button className="suelto-borrar" onClick={() => quitar(i)} title="Quitar">✕</button>
+        </div>
+      ))}
+      <div className="desglose-pie">
+        <button className="desglose-add" onClick={agregar}>+ Agregar ítem</button>
+        <span className="desglose-sub">Subtotal: {formatMoneda(subtotal)}</span>
+      </div>
     </div>
+  );
+};
+
+const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, onGuardarMonto, onGuardarDetalle }) => {
+  const cat = getCategoria(concepto.categoria);
+  const items = gasto?.items || [];
+  const tieneItems = items.length > 0;
+  const [abierto, setAbierto] = useState(false);
+
+  const empezarDesglose = () => {
+    setAbierto(true);
+    onGuardarDetalle(concepto, [{ detalle: '', monto: gasto?.monto || '' }]);
+  };
+
+  return (
+    <>
+      <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
+          {cat.icon}
+        </span>
+        <span className="cr-nombre">
+          <span>
+            {dentroDeGrupo ? nombreCorto(concepto) : concepto.nombre}
+            {concepto.frecuencia && concepto.frecuencia !== 'mensual' && (
+              <span className="cr-frec">{getFrecuencia(concepto.frecuencia).corto}</span>
+            )}
+          </span>
+          <span className="cr-cat">
+            {cat.label}{tieneItems ? ` · ${items.length} ítems` : ''}
+          </span>
+        </span>
+
+        {tieneItems ? (
+          <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
+            {formatMoneda(gasto.monto)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+          </button>
+        ) : (
+          <div className="cr-derecha">
+            <AmountInput value={gasto?.monto} onCommit={(monto) => onGuardarMonto(concepto, monto)} />
+            <button className="cr-desglosar" title="Desglosar en ítems" onClick={empezarDesglose}>⋯</button>
+          </div>
+        )}
+      </div>
+
+      {abierto && tieneItems && (
+        <DesgloseEditor
+          key={`${concepto.id}-${items.length}`}
+          items={items}
+          onChange={(nuevos) => onGuardarDetalle(concepto, nuevos)}
+        />
+      )}
+    </>
   );
 };
 
@@ -62,7 +141,7 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error, total,
-    setImporte, agregarSuelto, borrar,
+    setImporte, setDetalle, agregarSuelto, borrar,
   } = useGastosMes(mes);
 
   // Mostrar los conceptos que aplican al mes (según frecuencia) o que ya
@@ -123,13 +202,13 @@ const Gastos = () => {
                         </div>
                         {g.items.map((c) => (
                           <ConceptoRow key={c.id} concepto={c} dentroDeGrupo
-                            valor={porConcepto[c.id]?.monto} onCommit={setImporte} />
+                            gasto={porConcepto[c.id]} onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} />
                         ))}
                       </div>
                     ) : (
                       g.items.map((c) => (
                         <ConceptoRow key={c.id} concepto={c}
-                          valor={porConcepto[c.id]?.monto} onCommit={setImporte} />
+                          gasto={porConcepto[c.id]} onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} />
                       ))
                     )
                   )}

@@ -25,27 +25,40 @@ export const listarGastosMes = async (hogarId, mes) => {
 };
 
 /**
- * Carga/actualiza el importe de un concepto recurrente para un mes.
- * monto <= 0 o vacío elimina el registro de ese mes.
+ * Carga/actualiza un concepto recurrente para un mes.
+ * datos = { monto?, items? } donde items = [{ detalle, monto }].
+ * Si hay items, el total es la suma de ellos. Total <= 0 y sin items elimina.
  */
-export const setGastoRecurrente = async (hogarId, mes, concepto, monto, uid) => {
+export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid) => {
   const id = `${mes}__${concepto.id}`;
   const ref = doc(db, 'hogares', hogarId, 'gastos', id);
-  const valor = Number(monto);
-  if (!valor || valor <= 0) {
+
+  const items = Array.isArray(datos.items)
+    ? datos.items
+        .map((it) => ({ detalle: (it.detalle || '').trim(), monto: Number(it.monto) || 0 }))
+        .filter((it) => it.detalle || it.monto)
+    : [];
+
+  const valor = items.length
+    ? items.reduce((a, it) => a + it.monto, 0)
+    : Number(datos.monto) || 0;
+
+  if ((!valor || valor <= 0) && items.length === 0) {
     await deleteDoc(ref).catch(() => {});
     return null;
   }
+
   const payload = {
     mes,
     conceptoId: concepto.id,
     concepto: concepto.nombre,
     categoria: concepto.categoria,
     monto: valor,
+    items,
     updatedBy: uid,
     updatedAt: serverTimestamp(),
   };
-  await setDoc(ref, payload, { merge: true });
+  await setDoc(ref, payload); // reemplaza el doc (limpia items viejos si ya no hay)
   return { id, ...payload };
 };
 

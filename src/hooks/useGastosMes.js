@@ -6,7 +6,7 @@ import { useHogar } from '../context/HogarContext';
 import { listarConceptos } from '../services/conceptosService';
 import {
   listarGastosMes,
-  setGastoRecurrente,
+  guardarGastoRecurrente,
   crearGastoSuelto,
   eliminarGasto,
 } from '../services/gastosService';
@@ -47,13 +47,16 @@ export const useGastosMes = (mes) => {
   gastos.forEach((g) => { if (g.conceptoId) porConcepto[g.conceptoId] = g; });
   const sueltos = gastos.filter((g) => !g.conceptoId);
 
-  const setImporte = async (concepto, monto) => {
-    const res = await setGastoRecurrente(hogarId, mes, concepto, monto, user.uid);
+  const guardar = async (concepto, datos) => {
+    const res = await guardarGastoRecurrente(hogarId, mes, concepto, datos, user.uid);
     setGastos((prev) => {
       const sinEste = prev.filter((g) => g.conceptoId !== concepto.id);
       return res ? [...sinEste, res] : sinEste;
     });
   };
+
+  const setImporte = (concepto, monto) => guardar(concepto, { monto });
+  const setDetalle = (concepto, items) => guardar(concepto, { items });
 
   const agregarSuelto = async (datos) => {
     const nuevo = await crearGastoSuelto(hogarId, mes, datos, user.uid);
@@ -71,6 +74,6 @@ export const useGastosMes = (mes) => {
   return {
     conceptos, porConcepto, sueltos, gastos,
     loading, error, total,
-    setImporte, agregarSuelto, borrar, recargar: cargar,
+    setImporte, setDetalle, agregarSuelto, borrar, recargar: cargar,
   };
 };
