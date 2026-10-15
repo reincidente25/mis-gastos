@@ -133,3 +133,40 @@
   color: var(--color-danger); font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .aj-logout:hover { background: #fee2e2; }
+
+/* Grupos dentro de conceptos (ej: Edesur → Dolores, Baradero) */
+.grupo-bloque {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  margin: 6px 0;
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+.grupo-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-primary-soft);
+  border-bottom: 1px solid var(--color-border);
+}
+.grupo-nombre {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--color-primary);
+}
+.grupo-subtotal { font-size: 13px; font-weight: 700; color: var(--color-primary); }
+
+.grupo-bloque .concepto-row { padding: 9px 12px; }
+.grupo-bloque .concepto-row:last-child { border-bottom: none; }
+.concepto-row.en-grupo .cr-cat { display: none; }
+
+/* Chip de grupo en la lista de Conceptos */
+.cr-grupo-chip {
+  font-size: 11px; font-weight: 600; color: var(--color-primary);
+  background: var(--color-primary-soft); border-radius: 6px;
+  padding: 2px 7px; margin-left: 6px; white-space: nowrap;
+}
+.grupo-input {
+  width: 120px; padding: 6px 9px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: 7px; color: var(--color-text); font-size: 13px; outline: none;
+}
+.grupo-input:focus { border-color: var(--color-primary); background: #fff; }

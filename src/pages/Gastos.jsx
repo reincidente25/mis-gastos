@@ -8,6 +8,48 @@ import { CATEGORIAS, getCategoria } from '../config/categorias';
 import { formatMoneda, mesActual } from '../utils/format';
 import './Gastos.css';
 
+// Agrupa conceptos por `grupo`, preservando el orden de aparición.
+// Devuelve [{ grupo, items }]; grupo '' = sueltos (sin encabezado).
+const agruparConceptos = (conceptos) => {
+  const orden = [];
+  const mapa = {};
+  conceptos.forEach((c) => {
+    const key = c.grupo || '';
+    if (!mapa[key]) { mapa[key] = { grupo: key, items: [] }; orden.push(key); }
+    mapa[key].items.push(c);
+  });
+  return orden.map((k) => mapa[k]);
+};
+
+const subtotalGrupo = (items, porConcepto) =>
+  items.reduce((acc, c) => acc + (Number(porConcepto[c.id]?.monto) || 0), 0);
+
+// Nombre a mostrar: si está dentro de un grupo y el nombre empieza con el
+// grupo, mostramos solo la parte distintiva (ej: "Edesur Dolores" -> "Dolores").
+const nombreCorto = (c) => {
+  if (c.grupo && c.nombre.toLowerCase().startsWith(c.grupo.toLowerCase())) {
+    const resto = c.nombre.slice(c.grupo.length).trim();
+    return resto || c.nombre;
+  }
+  return c.nombre;
+};
+
+const ConceptoRow = ({ concepto, valor, onCommit, dentroDeGrupo }) => {
+  const cat = getCategoria(concepto.categoria);
+  return (
+    <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
+        {cat.icon}
+      </span>
+      <span className="cr-nombre">
+        {dentroDeGrupo ? nombreCorto(concepto) : concepto.nombre}
+        <span className="cr-cat">{cat.label}</span>
+      </span>
+      <AmountInput value={valor} onCommit={(monto) => onCommit(concepto, monto)} />
+    </div>
+  );
+};
+
 const Gastos = () => {
   const [mes, setMes] = useState(mesActual());
   const {
@@ -46,25 +88,25 @@ const Gastos = () => {
                 </p>
               ) : (
                 <div className="concepto-lista">
-                  {conceptos.map((c) => {
-                    const cat = getCategoria(c.categoria);
-                    const actual = porConcepto[c.id]?.monto;
-                    return (
-                      <div className="concepto-row" key={c.id}>
-                        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
-                          {cat.icon}
-                        </span>
-                        <span className="cr-nombre">
-                          {c.nombre}
-                          <span className="cr-cat">{cat.label}</span>
-                        </span>
-                        <AmountInput
-                          value={actual}
-                          onCommit={(monto) => setImporte(c, monto)}
-                        />
+                  {agruparConceptos(conceptos).map((g) =>
+                    g.grupo ? (
+                      <div className="grupo-bloque" key={`g-${g.grupo}`}>
+                        <div className="grupo-head">
+                          <span className="grupo-nombre">{g.grupo}</span>
+                          <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(g.items, porConcepto))}</span>
+                        </div>
+                        {g.items.map((c) => (
+                          <ConceptoRow key={c.id} concepto={c} dentroDeGrupo
+                            valor={porConcepto[c.id]?.monto} onCommit={setImporte} />
+                        ))}
                       </div>
-                    );
-                  })}
+                    ) : (
+                      g.items.map((c) => (
+                        <ConceptoRow key={c.id} concepto={c}
+                          valor={porConcepto[c.id]?.monto} onCommit={setImporte} />
+                      ))
+                    )
+                  )}
                 </div>
               )}
             </section>
