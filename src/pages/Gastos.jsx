@@ -5,7 +5,8 @@ import MesSelector from '../components/MesSelector';
 import AmountInput from '../components/AmountInput';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { CATEGORIAS, getCategoria } from '../config/categorias';
-import { formatMoneda, mesActual } from '../utils/format';
+import { getFrecuencia } from '../config/frecuencias';
+import { formatMoneda, mesActual, aplicaEnMes } from '../utils/format';
 import './Gastos.css';
 
 // Agrupa conceptos por `grupo`, preservando el orden de aparición.
@@ -42,7 +43,12 @@ const ConceptoRow = ({ concepto, valor, onCommit, dentroDeGrupo }) => {
         {cat.icon}
       </span>
       <span className="cr-nombre">
-        {dentroDeGrupo ? nombreCorto(concepto) : concepto.nombre}
+        <span>
+          {dentroDeGrupo ? nombreCorto(concepto) : concepto.nombre}
+          {concepto.frecuencia && concepto.frecuencia !== 'mensual' && (
+            <span className="cr-frec">{getFrecuencia(concepto.frecuencia).corto}</span>
+          )}
+        </span>
         <span className="cr-cat">{cat.label}</span>
       </span>
       <AmountInput value={valor} onCommit={(monto) => onCommit(concepto, monto)} />
@@ -52,11 +58,19 @@ const ConceptoRow = ({ concepto, valor, onCommit, dentroDeGrupo }) => {
 
 const Gastos = () => {
   const [mes, setMes] = useState(mesActual());
+  const [verTodos, setVerTodos] = useState(false);
   const {
     conceptos, porConcepto, sueltos,
     loading, error, total,
     setImporte, agregarSuelto, borrar,
   } = useGastosMes(mes);
+
+  // Mostrar los conceptos que aplican al mes (según frecuencia) o que ya
+  // tengan un importe cargado. Con "ver todos", se muestran todos.
+  const visibles = verTodos
+    ? conceptos
+    : conceptos.filter((c) => aplicaEnMes(c, mes) || porConcepto[c.id]);
+  const ocultos = conceptos.length - visibles.length;
 
   return (
     <Layout>
@@ -81,14 +95,26 @@ const Gastos = () => {
         ) : (
           <>
             <section className="card">
-              <h2 className="card-titulo">Conceptos recurrentes</h2>
+              <h2 className="card-titulo">
+                <span>Conceptos del mes</span>
+                {conceptos.length > 0 && (
+                  <label className="ver-todos">
+                    <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
+                    Ver todos{!verTodos && ocultos > 0 ? ` (+${ocultos})` : ''}
+                  </label>
+                )}
+              </h2>
               {conceptos.length === 0 ? (
                 <p className="pg-vacio-inline">
                   No hay conceptos. Agregalos desde la sección <strong>Conceptos</strong>.
                 </p>
+              ) : visibles.length === 0 ? (
+                <p className="pg-vacio-inline">
+                  Ningún concepto aplica a este mes. Activá <strong>Ver todos</strong> para verlos igual.
+                </p>
               ) : (
                 <div className="concepto-lista">
-                  {agruparConceptos(conceptos).map((g) =>
+                  {agruparConceptos(visibles).map((g) =>
                     g.grupo ? (
                       <div className="grupo-bloque" key={`g-${g.grupo}`}>
                         <div className="grupo-head">

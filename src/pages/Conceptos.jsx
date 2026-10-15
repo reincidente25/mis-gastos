@@ -3,12 +3,80 @@ import { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/layout/Layout';
 import { useHogar } from '../context/HogarContext';
 import { CATEGORIAS, getCategoria } from '../config/categorias';
+import { FRECUENCIAS } from '../config/frecuencias';
 import {
   listarConceptos, crearConcepto, actualizarConcepto,
   archivarConcepto, reactivarConcepto,
   eliminarConcepto, eliminarTodosConceptos,
 } from '../services/conceptosService';
 import './Gastos.css';
+
+// ── Tarjeta editable de un concepto ──
+const ItemConcepto = ({ c, archivado, onGuardar, onToggle, onBorrar }) => {
+  const cat = getCategoria(c.categoria);
+  const [nombre, setNombre] = useState(c.nombre);
+  const frec = c.frecuencia || 'mensual';
+
+  const commitNombre = () => {
+    const limpio = nombre.trim();
+    if (!limpio || limpio === c.nombre) { setNombre(c.nombre); return; }
+    onGuardar(c, { nombre: limpio });
+  };
+
+  return (
+    <div className={`concepto-card ${archivado ? 'archivado' : ''}`}>
+      <div className="cc-top">
+        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+        <input
+          className="cc-nombre-input"
+          value={nombre}
+          maxLength={60}
+          onChange={(e) => setNombre(e.target.value)}
+          onBlur={commitNombre}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        />
+        {archivado
+          ? <button className="suelto-borrar" onClick={() => onToggle(c)} title="Reactivar">↩️</button>
+          : <button className="suelto-borrar" onClick={() => onToggle(c)} title="Archivar">📥</button>}
+        <button className="suelto-borrar" onClick={() => onBorrar(c)} title="Borrar">🗑️</button>
+      </div>
+
+      <div className="cc-fields">
+        <label>
+          <span>Grupo / tag</span>
+          <input
+            className="grupo-input" placeholder="—" maxLength={30}
+            defaultValue={c.grupo || ''}
+            onBlur={(e) => onGuardar(c, { grupo: e.target.value.trim() })}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          />
+        </label>
+        <label>
+          <span>Categoría</span>
+          <select className="cat-select" value={c.categoria} onChange={(e) => onGuardar(c, { categoria: e.target.value })}>
+            {CATEGORIAS.map((x) => <option key={x.id} value={x.id}>{x.icon} {x.label}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Frecuencia</span>
+          <select className="cat-select" value={frec} onChange={(e) => onGuardar(c, { frecuencia: e.target.value })}>
+            {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+          </select>
+        </label>
+        {frec !== 'mensual' && (
+          <label>
+            <span>{frec === 'unica' ? 'Mes' : 'Desde el mes'}</span>
+            <input
+              className="cat-select" type="month"
+              defaultValue={c.mesAncla || ''}
+              onChange={(e) => onGuardar(c, { mesAncla: e.target.value })}
+            />
+          </label>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Conceptos = () => {
   const { hogar } = useHogar();
@@ -18,6 +86,7 @@ const Conceptos = () => {
   const [nombre, setNombre] = useState('');
   const [grupo, setGrupo] = useState('');
   const [categoria, setCategoria] = useState('otros');
+  const [frecuencia, setFrecuencia] = useState('mensual');
   const [guardando, setGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -34,22 +103,15 @@ const Conceptos = () => {
     if (!nombre.trim()) return;
     setGuardando(true);
     try {
-      await crearConcepto(hogarId, { nombre, grupo, categoria }, conceptos.length);
-      setNombre(''); setGrupo(''); setCategoria('otros');
+      await crearConcepto(hogarId, { nombre, grupo, categoria, frecuencia }, conceptos.length);
+      setNombre(''); setGrupo(''); setCategoria('otros'); setFrecuencia('mensual');
       await cargar();
     } finally { setGuardando(false); }
   };
 
-  const cambiarCategoria = async (c, nuevaCat) => {
-    await actualizarConcepto(hogarId, c.id, { categoria: nuevaCat });
-    setConceptos((prev) => prev.map((x) => x.id === c.id ? { ...x, categoria: nuevaCat } : x));
-  };
-
-  const cambiarGrupo = async (c, nuevoGrupo) => {
-    const limpio = nuevoGrupo.trim();
-    if (limpio === (c.grupo || '')) return;
-    await actualizarConcepto(hogarId, c.id, { grupo: limpio });
-    setConceptos((prev) => prev.map((x) => x.id === c.id ? { ...x, grupo: limpio } : x));
+  const guardarCampo = async (c, datos) => {
+    await actualizarConcepto(hogarId, c.id, datos);
+    setConceptos((prev) => prev.map((x) => x.id === c.id ? { ...x, ...datos } : x));
   };
 
   const toggleArchivo = async (c) => {
@@ -71,7 +133,7 @@ const Conceptos = () => {
     setConceptos([]);
   };
 
-  const activos   = conceptos.filter((c) => c.activo);
+  const activos    = conceptos.filter((c) => c.activo);
   const archivados = conceptos.filter((c) => !c.activo);
 
   return (
@@ -80,13 +142,13 @@ const Conceptos = () => {
         <header className="pg-header">
           <div>
             <h1>🗂️ Conceptos</h1>
-            <p className="pg-sub">Las filas fijas que cargás cada mes en Gastos</p>
+            <p className="pg-sub">Las filas que cargás cada mes en Gastos. Tocá para editar.</p>
           </div>
         </header>
 
         <section className="card">
           <h2 className="card-titulo">Nuevo concepto</h2>
-          <form className="suelto-form" style={{ gridTemplateColumns: '1fr 150px 150px auto', marginBottom: 0 }} onSubmit={handleAgregar}>
+          <form className="suelto-form" style={{ gridTemplateColumns: '1fr 130px 140px 140px auto', marginBottom: 0 }} onSubmit={handleAgregar}>
             <input type="text" placeholder="Nombre (ej: Edesur Dolores)" value={nombre}
               onChange={(e) => setNombre(e.target.value)} maxLength={60} />
             <input type="text" placeholder="Grupo (ej: Edesur)" value={grupo}
@@ -94,12 +156,14 @@ const Conceptos = () => {
             <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
               {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
             </select>
+            <select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value)}>
+              {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
             <button type="submit" disabled={guardando}>+ Agregar</button>
           </form>
           <p className="pg-vacio-inline" style={{ marginTop: 10 }}>
-            El <strong>grupo</strong> (opcional) junta variantes del mismo rubro —
-            ej: “Edesur Dolores” y “Edesur Baradero” con grupo <em>Edesur</em> — sin crear
-            una categoría nueva.
+            El <strong>grupo/tag</strong> junta variantes del mismo rubro (ej: Edesur
+            Dolores y Baradero). La <strong>frecuencia</strong> define en qué meses aparece.
           </p>
         </section>
 
@@ -114,47 +178,26 @@ const Conceptos = () => {
                   <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>
                 )}
               </h2>
-              <div className="concepto-lista">
-                {activos.map((c) => {
-                  const cat = getCategoria(c.categoria);
-                  return (
-                    <div className="concepto-row" key={c.id}>
-                      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-                      <span className="cr-nombre">{c.nombre}</span>
-                      <input
-                        className="grupo-input"
-                        defaultValue={c.grupo || ''}
-                        placeholder="Grupo"
-                        maxLength={30}
-                        onBlur={(e) => cambiarGrupo(c, e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      />
-                      <select className="cat-select" value={c.categoria} onChange={(e) => cambiarCategoria(c, e.target.value)}>
-                        {CATEGORIAS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-                      </select>
-                      <button className="suelto-borrar" onClick={() => toggleArchivo(c)} title="Archivar">📥</button>
-                      <button className="suelto-borrar" onClick={() => borrarUno(c)} title="Borrar">🗑️</button>
-                    </div>
-                  );
-                })}
-              </div>
+              {activos.length === 0 ? (
+                <p className="pg-vacio-inline">Agregá tu primer concepto con el formulario de arriba.</p>
+              ) : (
+                <div className="cc-lista">
+                  {activos.map((c) => (
+                    <ItemConcepto key={c.id} c={c} onGuardar={guardarCampo}
+                      onToggle={toggleArchivo} onBorrar={borrarUno} />
+                  ))}
+                </div>
+              )}
             </section>
 
             {archivados.length > 0 && (
               <section className="card">
                 <h2 className="card-titulo">Archivados <span className="card-sub">{archivados.length}</span></h2>
-                <div className="concepto-lista">
-                  {archivados.map((c) => {
-                    const cat = getCategoria(c.categoria);
-                    return (
-                      <div className="concepto-row" key={c.id} style={{ opacity: 0.6 }}>
-                        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-                        <span className="cr-nombre">{c.nombre}</span>
-                        <button className="suelto-borrar" onClick={() => toggleArchivo(c)} title="Reactivar">↩️</button>
-                        <button className="suelto-borrar" onClick={() => borrarUno(c)} title="Borrar">🗑️</button>
-                      </div>
-                    );
-                  })}
+                <div className="cc-lista">
+                  {archivados.map((c) => (
+                    <ItemConcepto key={c.id} c={c} archivado onGuardar={guardarCampo}
+                      onToggle={toggleArchivo} onBorrar={borrarUno} />
+                  ))}
                 </div>
               </section>
             )}

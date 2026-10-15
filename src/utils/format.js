@@ -32,3 +32,26 @@ export const fechaCorta = (fecha) => {
   const [, m, d] = fecha.split('-');
   return `${d}/${m}`;
 };
+
+/** Diferencia en meses entre dos meses YYYY-MM (b - a). */
+export const diffMeses = (a, b) => {
+  if (!a || !b) return 0;
+  const [ay, am] = a.split('-').map(Number);
+  const [by, bm] = b.split('-').map(Number);
+  return (by * 12 + bm) - (ay * 12 + am);
+};
+
+/**
+ * ¿El concepto aplica en el mes dado, según su frecuencia?
+ * Sin mesAncla o frecuencia mensual -> siempre.
+ */
+export const aplicaEnMes = (concepto, mes) => {
+  const frec = concepto.frecuencia || 'mensual';
+  if (frec === 'mensual') return true;
+  const ancla = concepto.mesAncla;
+  if (!ancla) return true; // sin ancla, no filtramos
+  const diff = diffMeses(ancla, mes);
+  if (frec === 'unica') return diff === 0;
+  const cada = { bimestral: 2, trimestral: 3, cuatrimestral: 4, semestral: 6, anual: 12 }[frec] || 1;
+  return diff >= 0 && diff % cada === 0;
+};
