@@ -425,3 +425,11 @@ button.grupo-head:hover { filter: brightness(0.98); }
   font-size: 13px; outline: none; text-align: right;
 }
 .desglose-pesos { font-size: 12px; font-weight: 700; color: var(--color-primary); white-space: nowrap; }
+
+/* Botón copiar del mes anterior */
+.cr-copiar {
+  flex-shrink: 0; width: 30px; height: 34px; border-radius: 7px;
+  background: transparent; border: 1px solid var(--color-border);
+  color: var(--color-muted); font-size: 14px; cursor: pointer;
+}
+.cr-copiar:hover { background: var(--color-primary-soft); color: var(--color-primary); border-color: #c7d2fe; }

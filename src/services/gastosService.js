@@ -10,6 +10,7 @@ import {
   updateDoc,
   addDoc,
   deleteDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -18,6 +19,12 @@ import {
 import { db } from '../config/firebase';
 
 const col = (hogarId) => collection(db, 'hogares', hogarId, 'gastos');
+
+/** Lee el gasto de un concepto en un mes puntual (o null). */
+export const getGastoConcepto = async (hogarId, mes, conceptoId) => {
+  const snap = await getDoc(doc(db, 'hogares', hogarId, 'gastos', `${mes}__${conceptoId}`));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+};
 
 export const listarGastosMes = async (hogarId, mes) => {
   const q = query(col(hogarId), where('mes', '==', mes));

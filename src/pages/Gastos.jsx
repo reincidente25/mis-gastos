@@ -138,7 +138,7 @@ const DesgloseEditor = ({ items, conMoneda, onChange }) => {
   );
 };
 
-const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDetalle, onGuardarMeta }) => {
+const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
@@ -195,6 +195,10 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
           </div>
         )}
 
+        {!tieneGasto && onCopiar && (
+          <button className="cr-copiar" title="Copiar del mes anterior"
+            onClick={() => onCopiar(concepto)}>⧉</button>
+        )}
         <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
           {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
@@ -212,7 +216,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta }) => {
+const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
   const [abierto, setAbierto] = useState(true);
   return (
     <div className="grupo-bloque">
@@ -225,25 +229,25 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuar
       {abierto && items.map((c) => (
         <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
           gasto={porConcepto[c.id]}
-          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
+          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar} />
       ))}
     </div>
   );
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta, onCopiar }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
       return grupoNombre ? (
         <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
-          porConcepto={porConcepto} onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
+          porConcepto={porConcepto} onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
             gasto={porConcepto[c.id]}
-            onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
+            onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar} />
         ))
       );
     })}
@@ -263,7 +267,7 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error,
-    setDetalle, setMeta, agregarSuelto, borrar,
+    setDetalle, setMeta, copiarAnterior, agregarSuelto, borrar,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
 
@@ -351,7 +355,7 @@ const Gastos = () => {
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior} />
                 )}
               </section>
             ) : (
@@ -364,7 +368,7 @@ const Gastos = () => {
                       </span></span>
                     </h2>
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior} />
                   </section>
                 )}
 
@@ -382,7 +386,7 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior} />
                   )}
                 </section>
               </>

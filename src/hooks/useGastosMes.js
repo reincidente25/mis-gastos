@@ -6,11 +6,19 @@ import { useHogar } from '../context/HogarContext';
 import { listarConceptos, actualizarConcepto } from '../services/conceptosService';
 import {
   listarGastosMes,
+  getGastoConcepto,
   guardarGastoRecurrente,
   setMetaGasto,
   crearGastoSuelto,
   eliminarGasto,
 } from '../services/gastosService';
+
+// Mes anterior a uno YYYY-MM.
+const mesAnterior = (mes) => {
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
 
 export const useGastosMes = (mes) => {
   const { user }  = useAuth();
@@ -90,6 +98,16 @@ export const useGastosMes = (mes) => {
     setGastos((prev) => prev.map((g) => (g.conceptoId === concepto.id ? { ...g, ...meta } : g)));
   };
 
+  // Copia importe/desglose del mes anterior para un concepto (sin pisar
+  // vencimiento/pagado del mes actual). Devuelve true si había algo que copiar.
+  const copiarAnterior = async (concepto) => {
+    const prev = await getGastoConcepto(hogarId, mesAnterior(mes), concepto.id);
+    if (!prev || !(Number(prev.monto) > 0)) return false;
+    const datos = prev.items?.length ? { items: prev.items } : { monto: prev.monto };
+    await guardar(concepto, datos);
+    return true;
+  };
+
   const agregarSuelto = async (datos) => {
     const nuevo = await crearGastoSuelto(hogarId, mes, datos, user.uid);
     setGastos((prev) => [...prev, nuevo]);
@@ -106,6 +124,6 @@ export const useGastosMes = (mes) => {
   return {
     conceptos, porConcepto, sueltos, gastos,
     loading, error, total,
-    setImporte, setDetalle, setMeta, agregarSuelto, borrar, recargar: cargar,
+    setImporte, setDetalle, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
   };
 };
