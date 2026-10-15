@@ -1,13 +1,24 @@
 // src/pages/Grupos.jsx
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/layout/Layout';
+import { useHogar } from '../context/HogarContext';
 import { useEstructura } from '../context/EstructuraContext';
+import { listarConceptos } from '../services/conceptosService';
 import './Gastos.css';
 import './Estructura.css';
 
 const Grupos = () => {
-  const { grupos, addGrupo, editGrupo, delGrupo } = useEstructura();
+  const { hogar } = useHogar();
+  const hogarId = hogar?.id;
+  const { grupos, getCat, addGrupo, editGrupo, delGrupo } = useEstructura();
   const [nombre, setNombre] = useState('');
+  const [conceptos, setConceptos] = useState([]);
+
+  const cargar = useCallback(async () => {
+    if (!hogarId) return;
+    setConceptos(await listarConceptos(hogarId));
+  }, [hogarId]);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const agregar = async (e) => {
     e.preventDefault();
@@ -21,13 +32,28 @@ const Grupos = () => {
     }
   };
 
+  const conceptosDe = (grupoId) => conceptos.filter((c) => c.activo && c.grupoId === grupoId);
+  const sinGrupo = conceptos.filter((c) => c.activo && !c.grupoId);
+
+  const RamaConcepto = ({ c }) => {
+    const cat = getCat(c.categoriaId);
+    return (
+      <div className="ga-item">
+        <span className="ga-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+        <span className="ga-nombre">{c.nombre}</span>
+        {c.tipo === 'ingreso' && <span className="ga-tipo">ingreso</span>}
+        <span className="ga-cat">{cat.nombre}</span>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="gastos-page ancho">
         <header className="pg-header">
           <div>
             <h1>📁 Grupos</h1>
-            <p className="pg-sub">Juntan varios conceptos (ej: Dolores agrupa sus servicios)</p>
+            <p className="pg-sub">Cada grupo con los conceptos que tiene asignados</p>
           </div>
         </header>
 
@@ -40,24 +66,41 @@ const Grupos = () => {
           </form>
         </section>
 
-        <section className="card">
-          <h2 className="card-titulo">Grupos <span className="card-sub">{grupos.length}</span></h2>
-          {grupos.length === 0 ? (
-            <p className="pg-vacio-inline">Todavía no creaste grupos.</p>
-          ) : (
-            <div className="cards-grid">
-              {grupos.map((g) => (
-                <div className="cat-item" key={g.id}>
-                  <span className="cat-chip" style={{ background: '#4f46e51a', color: '#4f46e5' }}>📁</span>
-                  <input className="cc-nombre-input" defaultValue={g.nombre} maxLength={30}
-                    onBlur={(e) => e.target.value.trim() && editGrupo(g.id, { nombre: e.target.value.trim() })}
-                    onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
-                  <button className="suelto-borrar" onClick={() => borrar(g)} title="Borrar">🗑️</button>
+        {grupos.length === 0 ? (
+          <section className="card"><p className="pg-vacio-inline">Todavía no creaste grupos.</p></section>
+        ) : (
+          <div className="arbol-lista">
+            {grupos.map((g) => {
+              const items = conceptosDe(g.id);
+              return (
+                <div className="grupo-arbol" key={g.id}>
+                  <div className="grupo-arbol-head">
+                    <span className="ga-chip">📁</span>
+                    <input className="cc-nombre-input" defaultValue={g.nombre} maxLength={30}
+                      onBlur={(e) => e.target.value.trim() && editGrupo(g.id, { nombre: e.target.value.trim() })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+                    <span className="ga-count">{items.length}</span>
+                    <button className="suelto-borrar" onClick={() => borrar(g)} title="Borrar">🗑️</button>
+                  </div>
+                  <div className="grupo-arbol-items">
+                    {items.length === 0
+                      ? <span className="ga-vacio">Sin conceptos asignados</span>
+                      : items.map((c) => <RamaConcepto key={c.id} c={c} />)}
+                  </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        )}
+
+        {sinGrupo.length > 0 && (
+          <section className="card">
+            <h2 className="card-titulo">Sin grupo <span className="card-sub">{sinGrupo.length}</span></h2>
+            <div className="grupo-arbol-items">
+              {sinGrupo.map((c) => <RamaConcepto key={c.id} c={c} />)}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </Layout>
   );

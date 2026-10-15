@@ -22,46 +22,35 @@ const ItemConcepto = ({ c, archivado, categorias, grupos, onGuardar, onToggle, o
   };
 
   return (
-    <div className={`concepto-card ${archivado ? 'archivado' : ''}`}>
-      <div className="cc-top">
-        <input className="cc-nombre-input" value={nombre} maxLength={60}
-          onChange={(e) => setNombre(e.target.value)} onBlur={commitNombre}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+    <div className={`concepto-fila ${archivado ? 'archivado' : ''}`}>
+      <input className="cf-nombre" value={nombre} maxLength={60}
+        onChange={(e) => setNombre(e.target.value)} onBlur={commitNombre}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+      <select className="cat-select" value={c.tipo || 'gasto'} onChange={(e) => onGuardar(c, { tipo: e.target.value })}>
+        <option value="gasto">💸 Gasto</option>
+        <option value="ingreso">💰 Ingreso</option>
+      </select>
+      <select className="cat-select" value={c.categoriaId || ''} onChange={(e) => onGuardar(c, { categoriaId: e.target.value })}>
+        <option value="">— Categoría —</option>
+        {categorias.map((x) => <option key={x.id} value={x.id}>{x.icon} {x.nombre}</option>)}
+      </select>
+      <select className="cat-select" value={c.grupoId || ''} onChange={(e) => onGuardar(c, { grupoId: e.target.value })}>
+        <option value="">— Grupo —</option>
+        {grupos.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+      </select>
+      <select className="cat-select" value={frec} onChange={(e) => onGuardar(c, { frecuencia: e.target.value })}>
+        {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+      </select>
+      {frec !== 'mensual' && (
+        <input className="cat-select cf-mes" type="month" defaultValue={c.mesAncla || ''}
+          title={frec === 'unica' ? 'Mes' : 'Desde el mes'}
+          onChange={(e) => onGuardar(c, { mesAncla: e.target.value })} />
+      )}
+      <div className="cf-acciones">
         <button className="suelto-borrar" onClick={() => onToggle(c)} title={archivado ? 'Reactivar' : 'Archivar'}>
           {archivado ? '↩️' : '📥'}
         </button>
         <button className="suelto-borrar" onClick={() => onBorrar(c)} title="Borrar">🗑️</button>
-      </div>
-      <div className="cc-fields">
-        <label><span>Tipo</span>
-          <select className="cat-select" value={c.tipo || 'gasto'} onChange={(e) => onGuardar(c, { tipo: e.target.value })}>
-            <option value="gasto">💸 Gasto</option>
-            <option value="ingreso">💰 Ingreso</option>
-          </select>
-        </label>
-        <label><span>Categoría</span>
-          <select className="cat-select" value={c.categoriaId || ''} onChange={(e) => onGuardar(c, { categoriaId: e.target.value })}>
-            <option value="">— Sin categoría —</option>
-            {categorias.map((x) => <option key={x.id} value={x.id}>{x.icon} {x.nombre}</option>)}
-          </select>
-        </label>
-        <label><span>Grupo</span>
-          <select className="cat-select" value={c.grupoId || ''} onChange={(e) => onGuardar(c, { grupoId: e.target.value })}>
-            <option value="">— Sin grupo —</option>
-            {grupos.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-          </select>
-        </label>
-        <label><span>Frecuencia</span>
-          <select className="cat-select" value={frec} onChange={(e) => onGuardar(c, { frecuencia: e.target.value })}>
-            {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-          </select>
-        </label>
-        {frec !== 'mensual' && (
-          <label><span>{frec === 'unica' ? 'Mes' : 'Desde el mes'}</span>
-            <input className="cat-select" type="month" defaultValue={c.mesAncla || ''}
-              onChange={(e) => onGuardar(c, { mesAncla: e.target.value })} />
-          </label>
-        )}
       </div>
     </div>
   );
@@ -120,7 +109,7 @@ const Conceptos = () => {
   const archivados = conceptos.filter((c) => !c.activo);
 
   const grid = (arr, arch) => (
-    <div className="cards-grid">
+    <div className="filas-lista">
       {arr.map((c) => (
         <ItemConcepto key={c.id} c={c} archivado={arch} categorias={categorias} grupos={grupos}
           onGuardar={guardar} onToggle={toggle} onBorrar={borrar} />
