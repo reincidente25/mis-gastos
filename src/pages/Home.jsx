@@ -9,13 +9,14 @@ import { useEstructura } from '../context/EstructuraContext';
 import { formatMoneda, mesActual, mesLegible } from '../utils/format';
 import './Home.css';
 
+const pct = (parte, total) => (total > 0 ? Math.round((parte / total) * 100) : 0);
+
 const Home = () => {
   const { hogar } = useHogar();
   const { getCat } = useEstructura();
   const [mes, setMes] = useState(mesActual());
   const { gastos, conceptos, loading } = useGastosMes(mes);
 
-  // tipo por conceptoId (los sueltos, sin concepto, son gastos).
   const tipoDe = useMemo(() => {
     const m = {};
     conceptos.forEach((c) => { m[c.id] = c.tipo || 'gasto'; });
@@ -24,7 +25,9 @@ const Home = () => {
 
   const totalIngresos = gastos.reduce((a, g) => a + (tipoDe(g) === 'ingreso' ? Number(g.monto) || 0 : 0), 0);
   const totalGastos   = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
-  const balance = totalIngresos - totalGastos;
+  const pagado    = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
+  const pendiente = totalGastos - pagado;
+  const balance   = totalIngresos - totalGastos;
 
   const porCategoria = useMemo(() => {
     const acc = {};
@@ -39,7 +42,6 @@ const Home = () => {
   }, [gastos, getCat, tipoDe]);
 
   const mayor = porCategoria[0]?.monto || 0;
-  const cargando = loading;
 
   return (
     <Layout>
@@ -52,53 +54,92 @@ const Home = () => {
           <MesSelector mes={mes} onChange={setMes} />
         </header>
 
-        {cargando ? (
+        {loading ? (
           <div className="pg-centro"><div className="spinner" /></div>
         ) : (
           <>
-            <div className="home-cards">
-              <div className="home-card">
-                <span className="hc-label">💰 Ingresos</span>
-                <span className="hc-valor">{formatMoneda(totalIngresos)}</span>
+            {/* KPIs */}
+            <div className="kpi-row">
+              <div className="kpi">
+                <span className="kpi-label">💰 Ingresos</span>
+                <span className="kpi-valor ingreso">{formatMoneda(totalIngresos)}</span>
               </div>
-              <div className="home-card">
-                <span className="hc-label">💸 Gastos</span>
-                <span className="hc-valor">{formatMoneda(totalGastos)}</span>
+              <div className="kpi">
+                <span className="kpi-label">💸 Gastos</span>
+                <span className="kpi-valor gasto">{formatMoneda(totalGastos)}</span>
               </div>
-              <div className={`home-card destacado ${balance < 0 ? 'neg' : ''}`}>
-                <span className="hc-label">Balance</span>
-                <span className="hc-valor">{formatMoneda(balance)}</span>
+              <div className={`kpi destacado ${balance < 0 ? 'neg' : ''}`}>
+                <span className="kpi-label">Balance</span>
+                <span className="kpi-valor">{formatMoneda(balance)}</span>
+              </div>
+              <div className="kpi">
+                <span className="kpi-label">● Pendiente de pago</span>
+                <span className="kpi-valor pend">{formatMoneda(pendiente)}</span>
               </div>
             </div>
 
-            <section className="card">
-              <div className="card-titulo">
-                Por categoría
-                <Link to="/gastos" className="home-link">Ver gastos →</Link>
-              </div>
-
-              {porCategoria.length === 0 ? (
-                <div className="home-vacio">
-                  <p>Todavía no cargaste gastos este mes.</p>
-                  <Link to="/gastos" className="home-cta">Ir a cargar gastos</Link>
+            <div className="home-grid">
+              {/* Gastos por categoría */}
+              <section className="card">
+                <div className="card-titulo">
+                  <span>Gastos por categoría</span>
+                  <Link to="/gastos" className="home-link">Ver gastos →</Link>
                 </div>
-              ) : (
-                <div className="home-barras">
-                  {porCategoria.map(({ cat, monto }) => (
-                    <div className="barra-row" key={cat.id}>
-                      <span className="barra-cat">
-                        <span className="barra-icon">{cat.icon}</span>{cat.nombre}
-                      </span>
-                      <div className="barra-track">
-                        <div className="barra-fill"
-                          style={{ width: `${mayor ? (monto / mayor) * 100 : 0}%`, background: cat.color }} />
+                {porCategoria.length === 0 ? (
+                  <div className="home-vacio">
+                    <p>Todavía no cargaste gastos este mes.</p>
+                    <Link to="/gastos" className="home-cta">Ir a cargar gastos</Link>
+                  </div>
+                ) : (
+                  <div className="home-barras">
+                    {porCategoria.map(({ cat, monto }) => (
+                      <div className="barra-row" key={cat.id}>
+                        <span className="barra-cat">
+                          <span className="barra-icon">{cat.icon}</span>{cat.nombre}
+                        </span>
+                        <div className="barra-track">
+                          <div className="barra-fill"
+                            style={{ width: `${mayor ? (monto / mayor) * 100 : 0}%`, background: cat.color }} />
+                        </div>
+                        <span className="barra-monto">
+                          {formatMoneda(monto)}
+                          <small>{pct(monto, totalGastos)}%</small>
+                        </span>
                       </div>
-                      <span className="barra-monto">{formatMoneda(monto)}</span>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Estado de pagos */}
+              <section className="card">
+                <div className="card-titulo"><span>Estado de pagos</span></div>
+                {totalGastos === 0 ? (
+                  <p className="pg-vacio-inline">Sin gastos cargados.</p>
+                ) : (
+                  <div className="pagos-panel">
+                    <div className="pagos-pct">
+                      <span className="pagos-num">{pct(pagado, totalGastos)}%</span>
+                      <span className="pagos-cap">pagado</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
+                    <div className="segbar">
+                      <div className="seg seg-pagado" style={{ width: `${pct(pagado, totalGastos)}%` }} />
+                      <div className="seg seg-pend" style={{ width: `${pct(pendiente, totalGastos)}%` }} />
+                    </div>
+                    <div className="pagos-leyenda">
+                      <div className="pl-item">
+                        <span className="pl-dot dot-pagado" /> Pagado
+                        <span className="pl-val">{formatMoneda(pagado)}</span>
+                      </div>
+                      <div className="pl-item">
+                        <span className="pl-dot dot-pend" /> Pendiente
+                        <span className="pl-val">{formatMoneda(pendiente)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
           </>
         )}
       </div>

@@ -1,40 +1,64 @@
 /* src/pages/Home.css */
 .home-page { width: 100%; display: flex; flex-direction: column; gap: 18px; }
 
-.home-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.home-card {
+/* KPIs */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.kpi {
   background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: 13px; padding: 16px; display: flex; flex-direction: column; gap: 5px;
+  border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;
   box-shadow: var(--shadow-sm);
 }
-.home-card.destacado {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; color: #fff;
-  box-shadow: var(--shadow-md);
-}
-.home-card.total-general { background: var(--color-primary-soft); border-color: #c7d2fe; }
-.hc-label { font-size: 12px; opacity: 0.85; }
-.hc-valor { font-size: 22px; font-weight: 700; }
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--color-muted); }
+.kpi-valor { font-size: 24px; font-weight: 700; }
+.kpi-valor.ingreso { color: var(--color-success); }
+.kpi-valor.gasto   { color: var(--color-primary); }
+.kpi-valor.pend    { color: #b45309; }
+.kpi.destacado { background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; color: #fff; box-shadow: var(--shadow-md); }
+.kpi.destacado .kpi-label { color: rgba(255,255,255,0.85); }
+.kpi.destacado.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
+
+/* Grilla principal del dashboard */
+.home-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
 
 .home-link { color: var(--color-primary); font-size: 13px; font-weight: 600; }
 
-.home-barras { display: flex; flex-direction: column; gap: 11px; }
-.barra-row { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 12px; }
+/* Barras por categoría */
+.home-barras { display: flex; flex-direction: column; gap: 12px; }
+.barra-row { display: grid; grid-template-columns: 160px 1fr auto; align-items: center; gap: 14px; }
 .barra-cat { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .barra-icon { font-size: 15px; }
-.barra-track { height: 9px; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+.barra-track { height: 10px; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
 .barra-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
-.barra-monto { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.barra-monto { font-size: 13px; font-weight: 700; white-space: nowrap; text-align: right; }
+.barra-monto small { display: block; font-size: 11px; font-weight: 500; color: var(--color-muted); }
 
+/* Panel estado de pagos */
+.pagos-panel { display: flex; flex-direction: column; gap: 14px; }
+.pagos-pct { display: flex; align-items: baseline; gap: 8px; }
+.pagos-num { font-size: 34px; font-weight: 800; color: var(--color-success); }
+.pagos-cap { font-size: 14px; color: var(--color-muted); }
+.segbar { display: flex; height: 14px; border-radius: 8px; overflow: hidden; background: var(--color-surface-2); gap: 2px; }
+.seg { height: 100%; }
+.seg-pagado { background: var(--color-success); }
+.seg-pend   { background: #f59e0b; }
+.pagos-leyenda { display: flex; flex-direction: column; gap: 8px; }
+.pl-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.pl-dot { width: 11px; height: 11px; border-radius: 3px; }
+.dot-pagado { background: var(--color-success); }
+.dot-pend { background: #f59e0b; }
+.pl-val { margin-left: auto; font-weight: 700; }
+
+/* Vacío */
 .home-vacio { text-align: center; padding: 30px 20px; color: var(--color-muted); }
 .home-cta {
   display: inline-block; margin-top: 12px; padding: 9px 16px;
   background: var(--color-primary); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600;
 }
 
-@media (max-width: 640px) {
-  .home-cards { grid-template-columns: 1fr; }
-  .barra-row { grid-template-columns: 120px 1fr auto; }
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .home-grid { grid-template-columns: 1fr; }
 }
-
-/* Balance negativo en el dashboard */
-.home-card.destacado.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
+@media (max-width: 560px) {
+  .barra-row { grid-template-columns: 110px 1fr auto; }
+}
