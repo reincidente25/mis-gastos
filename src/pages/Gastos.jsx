@@ -1,5 +1,5 @@
 // src/pages/Gastos.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import AmountInput from '../components/AmountInput';
@@ -37,6 +37,19 @@ const nombreCorto = (c, grupoNombre) => {
     return resto || c.nombre;
   }
   return c.nombre;
+};
+
+// Input de fecha con estado local, para que escribir no se corte cuando el
+// valor vuelve de Firestore (los date controlados se "reinician" si no).
+const VenceInput = ({ value, onCommit }) => {
+  const [v, setV] = useState(value || '');
+  useEffect(() => { setV(value || ''); }, [value]);
+  return (
+    <input
+      type="date" min="2000-01-01" max="2100-12-31" value={v}
+      onChange={(e) => { setV(e.target.value); onCommit(e.target.value); }}
+    />
+  );
 };
 
 // Editor del desglose de un concepto para el mes.
@@ -132,9 +145,8 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
         <div className={`cr-meta ${dentroDeGrupo ? 'en-grupo' : ''}`}>
           <label className="cr-vence">
             Vence
-            <input type="date" value={gasto.vencimiento || ''}
-              min="2000-01-01" max="2100-12-31"
-              onChange={(e) => onGuardarMeta(concepto, { vencimiento: e.target.value })} />
+            <VenceInput value={gasto.vencimiento}
+              onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
           </label>
           <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
             <input type="checkbox" checked={Boolean(gasto.pagado)}
