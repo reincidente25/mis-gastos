@@ -10,7 +10,9 @@ import Onboarding from './pages/Onboarding';
 import Home       from './pages/Home';
 import Gastos     from './pages/Gastos';
 import Tarjetas   from './pages/Tarjetas';
-import Estructura from './pages/Estructura';
+import Categorias from './pages/Categorias';
+import Conceptos  from './pages/Conceptos';
+import Grupos     from './pages/Grupos';
 import Ajustes    from './pages/Ajustes';
 
 const Pantalla = ({ children }) => (
@@ -45,8 +47,10 @@ const AppRoutes = () => (
     <Route path="/"           element={<RequireHogar><Home /></RequireHogar>} />
     <Route path="/gastos"     element={<RequireHogar><Gastos /></RequireHogar>} />
     <Route path="/tarjetas"   element={<RequireHogar><Tarjetas /></RequireHogar>} />
-    <Route path="/estructura" element={<RequireHogar><Estructura /></RequireHogar>} />
-    <Route path="/conceptos"  element={<Navigate to="/estructura" replace />} />
+    <Route path="/categorias" element={<RequireHogar><Categorias /></RequireHogar>} />
+    <Route path="/conceptos"  element={<RequireHogar><Conceptos /></RequireHogar>} />
+    <Route path="/grupos"     element={<RequireHogar><Grupos /></RequireHogar>} />
+    <Route path="/estructura" element={<Navigate to="/conceptos" replace />} />
     <Route path="/ajustes"    element={<RequireHogar><Ajustes /></RequireHogar>} />
 
     <Route path="*" element={<Navigate to="/" replace />} />

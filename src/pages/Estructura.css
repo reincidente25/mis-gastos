@@ -43,3 +43,15 @@
   .cat-form { grid-template-columns: 1fr 1fr; }
   .cat-form .color-picker { grid-column: 1 / -1; }
 }
+
+/* Ancho completo para las páginas de estructura */
+.gastos-page.ancho { max-width: 1200px; }
+
+/* Grilla responsive de tarjetas (categorías, grupos, conceptos) */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+.cards-grid .cat-item,
+.cards-grid .concepto-card { margin: 0; }
