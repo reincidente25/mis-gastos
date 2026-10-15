@@ -80,24 +80,23 @@ const Grupos = () => {
               const abierto = !cerrados[g.id];
               return (
                 <div className="grupo-arbol" key={g.id}>
-                  <div className="grupo-arbol-head">
-                    <button className="ga-toggle" onClick={() => toggle(g.id)} title={abierto ? 'Colapsar' : 'Expandir'}>
-                      {abierto ? '▾' : '▸'}
-                    </button>
+                  <div className="grupo-arbol-head" onClick={() => toggle(g.id)}>
+                    <span className="ga-toggle">{abierto ? '▾' : '▸'}</span>
                     <span className="ga-chip">📁</span>
                     <input className="cc-nombre-input ga-nombre-input" defaultValue={g.nombre} maxLength={30}
+                      onClick={(e) => e.stopPropagation()}
                       onBlur={(e) => e.target.value.trim() && editGrupo(g.id, { nombre: e.target.value.trim() })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
-                    {abierto && (
-                      <div className="head-chips">
-                        {items.length === 0
-                          ? <span className="ga-vacio">Sin conceptos</span>
-                          : items.map((c) => <ChipConcepto key={c.id} c={c} />)}
-                      </div>
-                    )}
-                    <span className="ga-count">{items.length}</span>
-                    <button className="suelto-borrar" onClick={() => borrar(g)} title="Borrar">🗑️</button>
+                    <span className="ga-pill">{items.length} {items.length === 1 ? 'concepto' : 'conceptos'}</span>
+                    <button className="suelto-borrar" onClick={(e) => { e.stopPropagation(); borrar(g); }} title="Borrar">🗑️</button>
                   </div>
+                  {abierto && (
+                    <div className="grupo-arbol-items">
+                      {items.length === 0
+                        ? <span className="ga-vacio">Sin conceptos asignados</span>
+                        : items.map((c) => <ChipConcepto key={c.id} c={c} />)}
+                    </div>
+                  )}
                 </div>
               );
             })}
