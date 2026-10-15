@@ -40,11 +40,10 @@ const Grupos = () => {
   const ChipConcepto = ({ c }) => {
     const cat = getCat(c.categoriaId);
     return (
-      <button type="button"
-        className={`concepto-chip ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}
-        style={{ borderColor: `${cat.color}55` }} title={`${cat.nombre} · editar`}
+      <button type="button" className="concepto-chip"
+        style={{ color: cat.color, borderColor: cat.color, background: `${cat.color}0f` }}
+        title={`${cat.nombre} · editar`}
         onClick={() => navigate(`/conceptos?c=${c.id}`)}>
-        <span className="chip-icono" style={{ color: cat.color }}>{cat.icon}</span>
         {c.nombre}
       </button>
     );
