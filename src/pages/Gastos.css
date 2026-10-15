@@ -63,6 +63,12 @@
 }
 .amount-input:focus { border-color: var(--color-primary); background: #fff; }
 .amount-input.guardando { border-color: var(--color-success); }
+/* Monto cargado: se ve azul como el total de los desglosados */
+.amount-input.con-valor {
+  background: var(--color-primary-soft); border-color: #c7d2fe;
+  color: var(--color-primary); font-weight: 700;
+}
+.amount-input.con-valor:focus { background: #fff; }
 
 .pg-vacio-inline { color: var(--color-muted); font-size: 14px; }
 

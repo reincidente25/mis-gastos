@@ -116,6 +116,12 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
   const tieneItems = items.length > 0;
+  const plantilla = concepto.itemsPlantilla || [];
+  const desglosado = tieneItems || plantilla.length > 0;
+  // Ítems a mostrar al abrir el desglose: los del mes, o la plantilla vacía.
+  const seedItems = tieneItems
+    ? items
+    : plantilla.map((d) => ({ detalle: d, monto: '' }));
   const tieneGasto = Boolean(gasto);
   const estado = estadoGasto(gasto);
   const [abierto, setAbierto] = useState(false);
@@ -135,7 +141,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
             <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
           </span>
           <span className="cr-cat">
-            {cat.nombre}{tieneItems ? ` · ${items.length} ítems` : ''}
+            {cat.nombre}{desglosado ? ` · ${(tieneItems ? items.length : plantilla.length)} ítems` : ''}
           </span>
         </span>
 
@@ -151,9 +157,9 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
           </div>
         )}
 
-        {tieneItems ? (
+        {desglosado ? (
           <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
-            {formatMoneda(gasto.monto)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+            {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
           </button>
         ) : abierto ? (
           <button className="cr-desglosar activo" title="Cerrar desglose" onClick={() => setAbierto(false)}>▾</button>
@@ -167,7 +173,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
 
       {abierto && (
         <DesgloseEditor
-          items={items}
+          items={seedItems}
           onChange={(nuevos) => onGuardarDetalle(concepto, nuevos)}
         />
       )}

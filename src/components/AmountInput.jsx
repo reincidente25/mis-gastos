@@ -23,9 +23,11 @@ const AmountInput = ({ value, onCommit, placeholder = '0' }) => {
     }
   };
 
+  const conValor = local !== '' && Number(local) > 0;
+
   return (
     <input
-      className={`amount-input ${guardando ? 'guardando' : ''}`}
+      className={`amount-input ${guardando ? 'guardando' : ''} ${conValor ? 'con-valor' : ''}`}
       type="number"
       inputMode="decimal"
       min="0"

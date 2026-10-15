@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useHogar } from '../context/HogarContext';
-import { listarConceptos } from '../services/conceptosService';
+import { listarConceptos, actualizarConcepto } from '../services/conceptosService';
 import {
   listarGastosMes,
   guardarGastoRecurrente,
@@ -61,6 +61,21 @@ export const useGastosMes = (mes) => {
       const sinEste = prev.filter((g) => g.conceptoId !== concepto.id);
       return res ? [...sinEste, res] : sinEste;
     });
+
+    // Si se editó el desglose, guardar la "plantilla" de ítems (solo los
+    // nombres) en el concepto, para que se replique vacía en otros meses.
+    if (datos.items) {
+      const plantilla = datos.items
+        .map((it) => (it.detalle || '').trim())
+        .filter(Boolean);
+      const actualPlantilla = concepto.itemsPlantilla || [];
+      const cambio = plantilla.length !== actualPlantilla.length ||
+        plantilla.some((d, i) => d !== actualPlantilla[i]);
+      if (cambio) {
+        await actualizarConcepto(hogarId, concepto.id, { itemsPlantilla: plantilla });
+        setConceptos((prev) => prev.map((c) => (c.id === concepto.id ? { ...c, itemsPlantilla: plantilla } : c)));
+      }
+    }
   };
 
   const setImporte = (concepto, monto) => guardar(concepto, { monto });
