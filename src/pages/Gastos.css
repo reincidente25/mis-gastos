@@ -405,3 +405,8 @@
   border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .filtro-limpiar:hover { background: #fee2e2; }
+
+/* Encabezado de grupo colapsable en Gastos */
+button.grupo-head { width: 100%; border: none; cursor: pointer; font: inherit; }
+button.grupo-head:hover { filter: brightness(0.98); }
+.grupo-chev { font-size: 10px; margin-right: 7px; color: var(--color-primary); }

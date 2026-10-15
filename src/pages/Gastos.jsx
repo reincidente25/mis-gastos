@@ -182,23 +182,34 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
   );
 };
 
+// Bloque de un grupo, colapsable desde su encabezado.
+const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta }) => {
+  const [abierto, setAbierto] = useState(true);
+  return (
+    <div className="grupo-bloque">
+      <button className="grupo-head" onClick={() => setAbierto((a) => !a)}>
+        <span className="grupo-nombre">
+          <span className="grupo-chev">{abierto ? '▾' : '▸'}</span>{grupoNombre}
+        </span>
+        <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(items, porConcepto))}</span>
+      </button>
+      {abierto && items.map((c) => (
+        <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
+          gasto={porConcepto[c.id]}
+          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
+      ))}
+    </div>
+  );
+};
+
 // Lista de conceptos agrupada por grupo.
 const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
       return grupoNombre ? (
-        <div className="grupo-bloque" key={`g-${g.grupoId}`}>
-          <div className="grupo-head">
-            <span className="grupo-nombre">{grupoNombre}</span>
-            <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(g.items, porConcepto))}</span>
-          </div>
-          {g.items.map((c) => (
-            <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
-              gasto={porConcepto[c.id]}
-              onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
-          ))}
-        </div>
+        <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
+          porConcepto={porConcepto} onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
