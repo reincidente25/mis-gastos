@@ -133,6 +133,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
           <label className="cr-vence">
             Vence
             <input type="date" value={gasto.vencimiento || ''}
+              min="2000-01-01" max="2100-12-31"
               onChange={(e) => onGuardarMeta(concepto, { vencimiento: e.target.value })} />
           </label>
           <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>

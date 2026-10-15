@@ -55,3 +55,17 @@
 }
 .cards-grid .cat-item,
 .cards-grid .concepto-card { margin: 0; }
+
+/* Dropdown de color (solo muestra el elegido) */
+.color-dd { position: relative; }
+.color-dd-btn {
+  width: 26px; height: 26px; border-radius: 7px; border: 2px solid var(--color-border);
+  cursor: pointer; padding: 0;
+}
+.color-dd-backdrop { position: fixed; inset: 0; z-index: 20; }
+.color-dd-pop {
+  position: absolute; top: 32px; right: 0; z-index: 21;
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 10px; padding: 8px; box-shadow: var(--shadow-md); width: 170px;
+}

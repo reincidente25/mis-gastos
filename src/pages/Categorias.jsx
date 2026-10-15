@@ -6,6 +6,28 @@ import { ICONOS_CATEGORIA, COLORES_CATEGORIA } from '../config/categorias';
 import './Gastos.css';
 import './Estructura.css';
 
+// Muestra solo el color elegido; al tocarlo abre la paleta.
+const ColorDropdown = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="color-dd">
+      <button type="button" className="color-dd-btn" style={{ background: value }}
+        onClick={() => setOpen((o) => !o)} title="Cambiar color" />
+      {open && (
+        <>
+          <div className="color-dd-backdrop" onClick={() => setOpen(false)} />
+          <div className="color-dd-pop">
+            {COLORES_CATEGORIA.map((c) => (
+              <button key={c} type="button" className={`swatch ${value === c ? 'sel' : ''}`}
+                style={{ background: c }} onClick={() => { onChange(c); setOpen(false); }} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const Categorias = () => {
   const { categorias, addCategoria, editCategoria, delCategoria } = useEstructura();
   const [nombre, setNombre] = useState('');
@@ -64,12 +86,7 @@ const Categorias = () => {
                 <select className="cat-select" value={c.icon} onChange={(e) => editCategoria(c.id, { icon: e.target.value })}>
                   {ICONOS_CATEGORIA.map((i) => <option key={i} value={i}>{i}</option>)}
                 </select>
-                <div className="color-picker mini">
-                  {COLORES_CATEGORIA.map((col) => (
-                    <button key={col} className={`swatch ${c.color === col ? 'sel' : ''}`}
-                      style={{ background: col }} onClick={() => editCategoria(c.id, { color: col })} />
-                  ))}
-                </div>
+                <ColorDropdown value={c.color} onChange={(col) => editCategoria(c.id, { color: col })} />
                 <button className="suelto-borrar" onClick={() => borrar(c)} title="Borrar">🗑️</button>
               </div>
             ))}
