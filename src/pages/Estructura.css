@@ -120,8 +120,9 @@
 }
 .concepto-chip {
   display: inline-flex; align-items: center;
-  padding: 2px 11px; border: 1.5px solid; border-radius: 20px;
-  font-size: 11.5px; font-weight: 600; white-space: nowrap; line-height: 1.7;
+  padding: 1px 10px; border: 1.5px solid; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em;
+  white-space: nowrap; line-height: 1.8;
 }
 .concepto-chip:hover { filter: brightness(0.95); }
 .ga-vacio { font-size: 12px; color: var(--color-muted); font-style: italic; }
