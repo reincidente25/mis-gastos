@@ -96,29 +96,27 @@
   border-radius: 12px; overflow: hidden; transition: box-shadow 0.15s, border-color 0.15s;
 }
 .grupo-arbol:hover { box-shadow: var(--shadow-sm); }
+/* Todo en una sola línea: 📁 nombre · chips · conteo */
 .grupo-arbol-head {
   display: flex; align-items: center; gap: 10px;
-  padding: 13px 16px; cursor: pointer; background: var(--color-surface);
+  padding: 11px 16px; background: var(--color-surface);
 }
-.ga-toggle { font-size: 11px; color: var(--color-muted); width: 14px; flex-shrink: 0; }
-.ga-chip { font-size: 15px; opacity: 0.8; }
+.ga-chip { font-size: 15px; opacity: 0.8; flex-shrink: 0; }
 /* Nombre como texto en negrita; borde solo al enfocar */
 .grupo-arbol-head .ga-nombre-input {
-  flex: 0 1 auto; width: auto; min-width: 80px; max-width: 320px;
+  flex: 0 0 auto; width: auto; min-width: 60px; max-width: 220px;
   background: transparent; border: 1px solid transparent;
-  font-size: 15px; font-weight: 700; padding: 4px 6px;
+  font-size: 14px; font-weight: 700; padding: 4px 6px;
 }
 .grupo-arbol-head .ga-nombre-input:hover { border-color: var(--color-border); }
 .grupo-arbol-head .ga-nombre-input:focus { border-color: var(--color-primary); background: #fff; }
-/* Píldora delicada con el conteo, a la derecha */
+/* Chips en la misma línea */
+.ga-chips { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+/* Píldora delicada con el conteo */
 .ga-pill {
-  margin-left: auto; font-size: 12px; font-weight: 500; color: var(--color-muted);
+  flex-shrink: 0; font-size: 12px; font-weight: 500; color: var(--color-muted);
   background: transparent; border: 1px solid var(--color-border); border-radius: 20px; padding: 3px 12px;
   white-space: nowrap;
-}
-.grupo-arbol-items {
-  padding: 12px 16px 14px; display: flex; flex-wrap: wrap; gap: 7px;
-  border-top: 1px solid var(--color-border);
 }
 .concepto-chip {
   display: inline-flex; align-items: center; gap: 4px;

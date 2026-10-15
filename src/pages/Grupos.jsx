@@ -15,8 +15,6 @@ const Grupos = () => {
   const navigate = useNavigate();
   const [nombre, setNombre] = useState('');
   const [conceptos, setConceptos] = useState([]);
-  const [abiertos, setAbiertos] = useState({});
-  const toggle = (id) => setAbiertos((a) => ({ ...a, [id]: !a[id] }));
 
   const cargar = useCallback(async () => {
     if (!hogarId) return;
@@ -77,26 +75,21 @@ const Grupos = () => {
           <div className="arbol-lista">
             {grupos.map((g) => {
               const items = conceptosDe(g.id);
-              const abierto = !!abiertos[g.id];
               return (
                 <div className="grupo-arbol" key={g.id}>
-                  <div className="grupo-arbol-head" onClick={() => toggle(g.id)}>
-                    <span className="ga-toggle">{abierto ? '▾' : '▸'}</span>
+                  <div className="grupo-arbol-head">
                     <span className="ga-chip">📁</span>
                     <input className="cc-nombre-input ga-nombre-input" defaultValue={g.nombre} maxLength={30}
-                      onClick={(e) => e.stopPropagation()}
                       onBlur={(e) => e.target.value.trim() && editGrupo(g.id, { nombre: e.target.value.trim() })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
-                    <span className="ga-pill">{items.length} {items.length === 1 ? 'concepto' : 'conceptos'}</span>
-                    <button className="suelto-borrar" onClick={(e) => { e.stopPropagation(); borrar(g); }} title="Borrar">🗑️</button>
-                  </div>
-                  {abierto && (
-                    <div className="grupo-arbol-items">
+                    <div className="ga-chips">
                       {items.length === 0
-                        ? <span className="ga-vacio">Sin conceptos asignados</span>
+                        ? <span className="ga-vacio">sin conceptos</span>
                         : items.map((c) => <ChipConcepto key={c.id} c={c} />)}
                     </div>
-                  )}
+                    <span className="ga-pill">{items.length} {items.length === 1 ? 'concepto' : 'conceptos'}</span>
+                    <button className="suelto-borrar" onClick={() => borrar(g)} title="Borrar">🗑️</button>
+                  </div>
                 </div>
               );
             })}
