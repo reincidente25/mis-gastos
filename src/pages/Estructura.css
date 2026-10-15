@@ -126,3 +126,12 @@
   .concepto-fila .cat-select, .cf-mes { flex: 1 1 45%; min-width: 0; }
   .ga-cat { display: none; }
 }
+
+/* Fila para agregar un concepto nuevo */
+.fila-nueva { border-style: dashed; background: var(--color-surface); margin-top: 8px; }
+.cf-add {
+  width: 34px; height: 34px; border-radius: 8px; border: none;
+  background: var(--color-primary); color: #fff; font-size: 22px; line-height: 1;
+  cursor: pointer; display: grid; place-items: center;
+}
+.cf-add:hover { opacity: 0.9; }

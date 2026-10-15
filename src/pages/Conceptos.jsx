@@ -138,37 +138,13 @@ const Conceptos = () => {
           </div>
         </header>
 
-        <section className="card">
-          <h2 className="card-titulo">Nuevo concepto</h2>
-          <form className="suelto-form" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', marginBottom: 0 }} onSubmit={agregar}>
-            <input type="text" placeholder="Nombre (ej: Edesur Dolores)" value={nombre}
-              onChange={(e) => setNombre(e.target.value)} maxLength={60} />
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              <option value="gasto">💸 Gasto</option>
-              <option value="ingreso">💰 Ingreso</option>
-            </select>
-            <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
-              <option value="">Categoría…</option>
-              {categorias.map((x) => <option key={x.id} value={x.id}>{x.icon} {x.nombre}</option>)}
-            </select>
-            <select value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
-              <option value="">Grupo…</option>
-              {grupos.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-            </select>
-            <select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value)}>
-              {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-            </select>
-            <button type="submit">+ Agregar</button>
-          </form>
-        </section>
-
         {loading ? (
           <div className="pg-centro"><div className="spinner" /></div>
         ) : (
           <>
             <section className="card">
               <h2 className="card-titulo">
-                <span>Activos <span className="card-sub">{activos.length}</span></span>
+                <span>Conceptos <span className="card-sub">{activos.length}</span></span>
                 <div className="cc-titulo-acciones">
                   <div className="cc-toggle">
                     <button className={vista === 'lista' ? 'activo' : ''} onClick={() => setVista('lista')}>Lista</button>
@@ -177,18 +153,43 @@ const Conceptos = () => {
                   {conceptos.length > 0 && <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>}
                 </div>
               </h2>
-              {activos.length === 0 ? (
-                <p className="pg-vacio-inline">Agregá tu primer concepto arriba.</p>
-              ) : vista === 'lista' ? grid(activos, false) : (
-                <div className="cc-grupos">
-                  {porGrupo().map((g) => (
-                    <div className="cc-grupo" key={g.nombre}>
-                      <div className="cc-grupo-head"><span>{g.nombre}</span><span className="card-sub">{g.items.length}</span></div>
-                      {grid(g.items, false)}
-                    </div>
-                  ))}
-                </div>
+
+              {activos.length > 0 && (
+                vista === 'lista' ? grid(activos, false) : (
+                  <div className="cc-grupos">
+                    {porGrupo().map((g) => (
+                      <div className="cc-grupo" key={g.nombre}>
+                        <div className="cc-grupo-head"><span>{g.nombre}</span><span className="card-sub">{g.items.length}</span></div>
+                        {grid(g.items, false)}
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
+
+              {/* Fila para agregar un concepto nuevo */}
+              <form className="concepto-fila fila-nueva" onSubmit={agregar}>
+                <input className="cf-nombre" type="text" placeholder="Nuevo concepto…" value={nombre}
+                  onChange={(e) => setNombre(e.target.value)} maxLength={60} />
+                <select className="cat-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+                  <option value="gasto">💸 Gasto</option>
+                  <option value="ingreso">💰 Ingreso</option>
+                </select>
+                <select className="cat-select" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
+                  <option value="">— Categoría —</option>
+                  {categorias.map((x) => <option key={x.id} value={x.id}>{x.icon} {x.nombre}</option>)}
+                </select>
+                <select className="cat-select" value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
+                  <option value="">— Grupo —</option>
+                  {grupos.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                </select>
+                <select className="cat-select" value={frecuencia} onChange={(e) => setFrecuencia(e.target.value)}>
+                  {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </select>
+                <div className="cf-acciones">
+                  <button type="submit" className="cf-add" title="Agregar concepto">+</button>
+                </div>
+              </form>
             </section>
 
             {archivados.length > 0 && (
