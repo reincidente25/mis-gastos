@@ -37,15 +37,14 @@ const Grupos = () => {
   const conceptosDe = (grupoId) => conceptos.filter((c) => c.activo && c.grupoId === grupoId);
   const sinGrupo = conceptos.filter((c) => c.activo && !c.grupoId);
 
-  const RamaConcepto = ({ c }) => {
+  const ChipConcepto = ({ c }) => {
     const cat = getCat(c.categoriaId);
     return (
-      <div className="ga-item">
-        <span className="ga-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-        <span className="ga-nombre">{c.nombre}</span>
-        {c.tipo === 'ingreso' && <span className="ga-tipo">ingreso</span>}
-        <span className="ga-cat">{cat.nombre}</span>
-      </div>
+      <span className={`concepto-chip ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}
+        style={{ borderColor: `${cat.color}55` }} title={cat.nombre}>
+        <span className="chip-icono" style={{ color: cat.color }}>{cat.icon}</span>
+        {c.nombre}
+      </span>
     );
   };
 
@@ -92,7 +91,7 @@ const Grupos = () => {
                     <div className="grupo-arbol-items">
                       {items.length === 0
                         ? <span className="ga-vacio">Sin conceptos asignados</span>
-                        : items.map((c) => <RamaConcepto key={c.id} c={c} />)}
+                        : items.map((c) => <ChipConcepto key={c.id} c={c} />)}
                     </div>
                   )}
                 </div>
@@ -105,7 +104,7 @@ const Grupos = () => {
           <section className="card">
             <h2 className="card-titulo">Sin grupo <span className="card-sub">{sinGrupo.length}</span></h2>
             <div className="grupo-arbol-items">
-              {sinGrupo.map((c) => <RamaConcepto key={c.id} c={c} />)}
+              {sinGrupo.map((c) => <ChipConcepto key={c.id} c={c} />)}
             </div>
           </section>
         )}
