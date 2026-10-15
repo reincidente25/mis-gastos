@@ -1,5 +1,5 @@
 /* src/pages/Gastos.css — también estilos compartidos de página */
-.gastos-page { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.gastos-page { width: 100%; display: flex; flex-direction: column; gap: 18px; }
 
 .pg-header {
   display: flex; align-items: flex-start; justify-content: space-between;

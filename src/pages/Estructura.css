@@ -45,7 +45,7 @@
 }
 
 /* Ancho completo para las páginas de estructura */
-.gastos-page.ancho { max-width: 1200px; }
+.gastos-page.ancho { width: 100%; }
 
 /* Grilla responsive de tarjetas (categorías, grupos, conceptos) */
 .cards-grid {
