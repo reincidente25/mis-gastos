@@ -177,7 +177,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
             <span className={`cr-estado est-${estado}`}>{estadoLabel}</span>
           </span>
           <span className="cr-cat">
-            {cat.nombre}{tieneItems ? ` · ${items.length} ítems` : ''}
+            {cat.nombre}{(tieneItems || plantilla.length) ? ` · ${tieneItems ? items.length : plantilla.length} ítems` : ''}
           </span>
         </span>
 
