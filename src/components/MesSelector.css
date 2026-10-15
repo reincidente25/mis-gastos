@@ -1,0 +1,32 @@
+/* src/components/MesSelector.css */
+.mes-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.mes-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mes-btn:hover { background: var(--color-border); }
+
+.mes-label {
+  min-width: 150px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}

@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para Mis Gastos.
+// Cada usuario solo puede leer y escribir sus propios gastos.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /gastos/{gastoId} {
+      // Solo usuarios autenticados cuyo uid coincide con el del documento.
+      allow read, delete: if request.auth != null
+                          && request.auth.uid == resource.data.uid;
+
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.uid
+                    && request.resource.data.monto is number
+                    && request.resource.data.monto > 0;
+
+      allow update: if request.auth != null
+                    && request.auth.uid == resource.data.uid
+                    && request.resource.data.uid == resource.data.uid;
+    }
+  }
+}

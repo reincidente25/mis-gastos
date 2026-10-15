@@ -5,9 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
 const NAV_ITEMS = [
-  { path: '/',         label: 'Inicio',    icon: '🏠' },
-  { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-  // Agregar más rutas acá
+  { path: '/',       label: 'Resumen', icon: '📊' },
+  { path: '/gastos', label: 'Gastos',  icon: '💸' },
 ];
 
 const Layout = ({ children }) => {
@@ -26,8 +25,8 @@ const Layout = ({ children }) => {
       {/* Sidebar */}
       <aside className={`sidebar ${menuAbierto ? 'abierto' : ''}`}>
         <div className="sidebar-logo">
-          <span className="logo-icon">⚡</span>
-          <span className="logo-texto">Mi App</span>
+          <span className="logo-icon">💸</span>
+          <span className="logo-texto">Mis Gastos</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -67,7 +66,7 @@ const Layout = ({ children }) => {
           >
             ☰
           </button>
-          <span className="header-titulo">Mi App</span>
+          <span className="header-titulo">Mis Gastos</span>
         </header>
 
         <main className="layout-content">

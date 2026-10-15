@@ -62,3 +62,21 @@
 
 .btn-login:hover    { opacity: 0.9; }
 .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.login-switch {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--color-muted, #64748b);
+  text-align: center;
+}
+
+.login-switch-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary, #6366f1);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.login-switch-btn:hover { text-decoration: underline; }

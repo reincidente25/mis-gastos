@@ -1,0 +1,71 @@
+/* src/components/GastoForm.css */
+.gasto-form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.gasto-form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.gf-campo { display: flex; flex-direction: column; gap: 6px; }
+.gf-campo label { font-size: 12px; color: var(--color-muted); }
+
+.gf-campo input,
+.gf-campo select {
+  padding: 9px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.gf-campo input:focus,
+.gf-campo select:focus { border-color: var(--color-primary); }
+
+.gf-error { color: #f87171; font-size: 13px; margin-top: 10px; }
+
+.gf-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.gf-btn-guardar {
+  padding: 10px 18px;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.gf-btn-guardar:hover    { opacity: 0.9; }
+.gf-btn-guardar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.gf-btn-cancelar {
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.gf-btn-cancelar:hover { background: var(--color-border); color: var(--color-text); }
+
+@media (max-width: 640px) {
+  .gasto-form-grid { grid-template-columns: 1fr 1fr; }
+  .gf-desc { grid-column: 1 / -1; }
+}

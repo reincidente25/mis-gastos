@@ -4,9 +4,9 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/common/PrivateRoute';
 
 // Pages
-import Login    from './pages/Login';
-import Home     from './pages/Home';
-// import Dashboard from './pages/Dashboard';  // ← agregar páginas acá
+import Login  from './pages/Login';
+import Home   from './pages/Home';
+import Gastos from './pages/Gastos';
 
 const App = () => {
   return (
@@ -22,9 +22,9 @@ const App = () => {
             <PrivateRoute><Home /></PrivateRoute>
           } />
 
-          {/* <Route path="/dashboard" element={
-            <PrivateRoute><Dashboard /></PrivateRoute>
-          } /> */}
+          <Route path="/gastos" element={
+            <PrivateRoute><Gastos /></PrivateRoute>
+          } />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
