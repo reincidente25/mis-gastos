@@ -6,6 +6,7 @@ import { CATEGORIAS, getCategoria } from '../config/categorias';
 import {
   listarConceptos, crearConcepto, actualizarConcepto,
   archivarConcepto, reactivarConcepto,
+  eliminarConcepto, eliminarTodosConceptos,
 } from '../services/conceptosService';
 import './Gastos.css';
 
@@ -57,6 +58,19 @@ const Conceptos = () => {
     setConceptos((prev) => prev.map((x) => x.id === c.id ? { ...x, activo: !x.activo } : x));
   };
 
+  const borrarUno = async (c) => {
+    if (!window.confirm(`¿Borrar el concepto "${c.nombre}"?`)) return;
+    await eliminarConcepto(hogarId, c.id);
+    setConceptos((prev) => prev.filter((x) => x.id !== c.id));
+  };
+
+  const borrarTodos = async () => {
+    if (conceptos.length === 0) return;
+    if (!window.confirm(`¿Borrar los ${conceptos.length} conceptos? Esto no se puede deshacer.`)) return;
+    await eliminarTodosConceptos(hogarId);
+    setConceptos([]);
+  };
+
   const activos   = conceptos.filter((c) => c.activo);
   const archivados = conceptos.filter((c) => !c.activo);
 
@@ -94,7 +108,12 @@ const Conceptos = () => {
         ) : (
           <>
             <section className="card">
-              <h2 className="card-titulo">Activos <span className="card-sub">{activos.length}</span></h2>
+              <h2 className="card-titulo">
+                <span>Activos <span className="card-sub">{activos.length}</span></span>
+                {conceptos.length > 0 && (
+                  <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>
+                )}
+              </h2>
               <div className="concepto-lista">
                 {activos.map((c) => {
                   const cat = getCategoria(c.categoria);
@@ -114,6 +133,7 @@ const Conceptos = () => {
                         {CATEGORIAS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
                       </select>
                       <button className="suelto-borrar" onClick={() => toggleArchivo(c)} title="Archivar">📥</button>
+                      <button className="suelto-borrar" onClick={() => borrarUno(c)} title="Borrar">🗑️</button>
                     </div>
                   );
                 })}
@@ -131,6 +151,7 @@ const Conceptos = () => {
                         <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
                         <span className="cr-nombre">{c.nombre}</span>
                         <button className="suelto-borrar" onClick={() => toggleArchivo(c)} title="Reactivar">↩️</button>
+                        <button className="suelto-borrar" onClick={() => borrarUno(c)} title="Borrar">🗑️</button>
                       </div>
                     );
                   })}

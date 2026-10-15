@@ -170,3 +170,11 @@
   border-radius: 7px; color: var(--color-text); font-size: 13px; outline: none;
 }
 .grupo-input:focus { border-color: var(--color-primary); background: #fff; }
+
+/* Botón borrar todos (Conceptos) */
+.btn-borrar-todos {
+  padding: 5px 11px; background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: 7px; color: var(--color-danger); font-size: 12px;
+  font-weight: 600; cursor: pointer;
+}
+.btn-borrar-todos:hover { background: #fee2e2; }

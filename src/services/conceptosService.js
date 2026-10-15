@@ -5,9 +5,11 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   getDocs,
   query,
   orderBy,
+  writeBatch,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -43,3 +45,15 @@ export const archivarConcepto = (hogarId, id) =>
 
 export const reactivarConcepto = (hogarId, id) =>
   updateDoc(doc(db, 'hogares', hogarId, 'conceptos', id), { activo: true });
+
+/** Borra definitivamente un concepto (no borra los gastos ya cargados). */
+export const eliminarConcepto = (hogarId, id) =>
+  deleteDoc(doc(db, 'hogares', hogarId, 'conceptos', id));
+
+/** Borra TODOS los conceptos del hogar. */
+export const eliminarTodosConceptos = async (hogarId) => {
+  const snap = await getDocs(col(hogarId));
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+};
