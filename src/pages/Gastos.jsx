@@ -139,6 +139,18 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
           </span>
         </span>
 
+        {tieneGasto && (
+          <div className="cr-inline-meta">
+            <VenceInput value={gasto.vencimiento}
+              onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
+            <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
+              <input type="checkbox" checked={Boolean(gasto.pagado)}
+                onChange={(e) => onGuardarMeta(concepto, { pagado: e.target.checked })} />
+              Pagado
+            </label>
+          </div>
+        )}
+
         {tieneItems ? (
           <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
             {formatMoneda(gasto.monto)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
@@ -152,21 +164,6 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
           </div>
         )}
       </div>
-
-      {tieneGasto && (
-        <div className={`cr-meta ${dentroDeGrupo ? 'en-grupo' : ''}`}>
-          <label className="cr-vence">
-            Vence
-            <VenceInput value={gasto.vencimiento}
-              onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
-          </label>
-          <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
-            <input type="checkbox" checked={Boolean(gasto.pagado)}
-              onChange={(e) => onGuardarMeta(concepto, { pagado: e.target.checked })} />
-            Pagado
-          </label>
-        </div>
-      )}
 
       {abierto && (
         <DesgloseEditor

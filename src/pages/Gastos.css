@@ -344,3 +344,23 @@
   .estado-tiles { grid-template-columns: 1fr 1fr; }
   .et-faltan { grid-column: 1 / -1; }
 }
+
+/* Vencimiento + pagado en la misma fila que la descripción */
+.cr-inline-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.cr-inline-meta input[type="date"] {
+  min-width: 140px; padding: 7px 10px; background: var(--color-surface-2);
+  border: 1px solid var(--color-border); border-radius: 8px;
+  color: var(--color-text); font-size: 13px; outline: none;
+}
+.cr-inline-meta input[type="date"]:focus { border-color: var(--color-primary); background: #fff; }
+.cr-pago {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+  font-weight: 600; color: var(--color-muted); cursor: pointer; white-space: nowrap;
+}
+.cr-pago.si { color: var(--color-success); }
+.cr-pago input { accent-color: var(--color-success); }
+
+@media (max-width: 760px) {
+  .concepto-row { flex-wrap: wrap; }
+  .cr-inline-meta { order: 3; width: 100%; padding-left: 48px; }
+}
