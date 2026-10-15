@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
-import { useTarjetasMes } from '../hooks/useTarjetasMes';
 import { useHogar } from '../context/HogarContext';
 import { useEstructura } from '../context/EstructuraContext';
 import { formatMoneda, mesActual, mesLegible } from '../utils/format';
@@ -14,22 +13,33 @@ const Home = () => {
   const { hogar } = useHogar();
   const { getCat } = useEstructura();
   const [mes, setMes] = useState(mesActual());
-  const { gastos, loading, total } = useGastosMes(mes);
-  const { total: totalTarjetas, loading: loadingT } = useTarjetasMes(mes);
+  const { gastos, conceptos, loading } = useGastosMes(mes);
+
+  // tipo por conceptoId (los sueltos, sin concepto, son gastos).
+  const tipoDe = useMemo(() => {
+    const m = {};
+    conceptos.forEach((c) => { m[c.id] = c.tipo || 'gasto'; });
+    return (g) => (g.conceptoId ? m[g.conceptoId] || 'gasto' : 'gasto');
+  }, [conceptos]);
+
+  const totalIngresos = gastos.reduce((a, g) => a + (tipoDe(g) === 'ingreso' ? Number(g.monto) || 0 : 0), 0);
+  const totalGastos   = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
+  const balance = totalIngresos - totalGastos;
 
   const porCategoria = useMemo(() => {
     const acc = {};
     gastos.forEach((g) => {
+      if (tipoDe(g) === 'ingreso') return;
       const id = g.categoriaId || '';
       acc[id] = (acc[id] || 0) + (Number(g.monto) || 0);
     });
     return Object.entries(acc)
       .map(([id, monto]) => ({ cat: getCat(id), monto }))
       .sort((a, b) => b.monto - a.monto);
-  }, [gastos, getCat]);
+  }, [gastos, getCat, tipoDe]);
 
   const mayor = porCategoria[0]?.monto || 0;
-  const cargando = loading || loadingT;
+  const cargando = loading;
 
   return (
     <Layout>
@@ -47,17 +57,17 @@ const Home = () => {
         ) : (
           <>
             <div className="home-cards">
-              <div className="home-card destacado">
-                <span className="hc-label">Gastos del mes</span>
-                <span className="hc-valor">{formatMoneda(total)}</span>
+              <div className="home-card">
+                <span className="hc-label">💰 Ingresos</span>
+                <span className="hc-valor">{formatMoneda(totalIngresos)}</span>
               </div>
               <div className="home-card">
-                <span className="hc-label">Tarjetas</span>
-                <span className="hc-valor">{formatMoneda(totalTarjetas)}</span>
+                <span className="hc-label">💸 Gastos</span>
+                <span className="hc-valor">{formatMoneda(totalGastos)}</span>
               </div>
-              <div className="home-card total-general">
-                <span className="hc-label">Total general</span>
-                <span className="hc-valor">{formatMoneda(total + totalTarjetas)}</span>
+              <div className={`home-card destacado ${balance < 0 ? 'neg' : ''}`}>
+                <span className="hc-label">Balance</span>
+                <span className="hc-valor">{formatMoneda(balance)}</span>
               </div>
             </div>
 

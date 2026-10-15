@@ -33,6 +33,12 @@ const ItemConcepto = ({ c, archivado, categorias, grupos, onGuardar, onToggle, o
         <button className="suelto-borrar" onClick={() => onBorrar(c)} title="Borrar">🗑️</button>
       </div>
       <div className="cc-fields">
+        <label><span>Tipo</span>
+          <select className="cat-select" value={c.tipo || 'gasto'} onChange={(e) => onGuardar(c, { tipo: e.target.value })}>
+            <option value="gasto">💸 Gasto</option>
+            <option value="ingreso">💰 Ingreso</option>
+          </select>
+        </label>
         <label><span>Categoría</span>
           <select className="cat-select" value={c.categoriaId || ''} onChange={(e) => onGuardar(c, { categoriaId: e.target.value })}>
             <option value="">— Sin categoría —</option>
@@ -71,6 +77,7 @@ const Conceptos = () => {
   const [categoriaId, setCategoriaId] = useState('');
   const [grupoId, setGrupoId] = useState('');
   const [frecuencia, setFrecuencia] = useState('mensual');
+  const [tipo, setTipo] = useState('gasto');
   const [vista, setVista] = useState('grupo');
 
   const cargar = useCallback(async () => {
@@ -84,8 +91,8 @@ const Conceptos = () => {
   const agregar = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) return;
-    await crearConcepto(hogarId, { nombre, categoriaId, grupoId, frecuencia }, conceptos.length);
-    setNombre(''); setCategoriaId(''); setGrupoId(''); setFrecuencia('mensual');
+    await crearConcepto(hogarId, { nombre, categoriaId, grupoId, frecuencia, tipo }, conceptos.length);
+    setNombre(''); setCategoriaId(''); setGrupoId(''); setFrecuencia('mensual'); setTipo('gasto');
     await cargar();
   };
 
@@ -144,9 +151,13 @@ const Conceptos = () => {
 
         <section className="card">
           <h2 className="card-titulo">Nuevo concepto</h2>
-          <form className="suelto-form" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto', marginBottom: 0 }} onSubmit={agregar}>
+          <form className="suelto-form" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', marginBottom: 0 }} onSubmit={agregar}>
             <input type="text" placeholder="Nombre (ej: Edesur Dolores)" value={nombre}
               onChange={(e) => setNombre(e.target.value)} maxLength={60} />
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="gasto">💸 Gasto</option>
+              <option value="ingreso">💰 Ingreso</option>
+            </select>
             <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
               <option value="">Categoría…</option>
               {categorias.map((x) => <option key={x.id} value={x.id}>{x.icon} {x.nombre}</option>)}

@@ -175,12 +175,46 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
   );
 };
 
+// Lista de conceptos agrupada por grupo.
+const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarMonto, onGuardarDetalle, onGuardarMeta }) => (
+  <div className="concepto-lista">
+    {agruparConceptos(lista).map((g) => {
+      const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
+      return grupoNombre ? (
+        <div className="grupo-bloque" key={`g-${g.grupoId}`}>
+          <div className="grupo-head">
+            <span className="grupo-nombre">{grupoNombre}</span>
+            <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(g.items, porConcepto))}</span>
+          </div>
+          {g.items.map((c) => (
+            <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
+              gasto={porConcepto[c.id]} onGuardarMonto={onGuardarMonto}
+              onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
+          ))}
+        </div>
+      ) : (
+        g.items.map((c) => (
+          <ConceptoRow key={c.id} concepto={c}
+            gasto={porConcepto[c.id]} onGuardarMonto={onGuardarMonto}
+            onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
+        ))
+      );
+    })}
+  </div>
+);
+
+const sumaPorTipo = (conceptos, porConcepto, cond) =>
+  conceptos.reduce((a, c) => {
+    const g = porConcepto[c.id];
+    return a + (g && cond(g) ? Number(g.monto) || 0 : 0);
+  }, 0);
+
 const Gastos = () => {
   const [mes, setMes] = useState(mesActual());
   const [verTodos, setVerTodos] = useState(false);
   const {
     conceptos, porConcepto, sueltos,
-    loading, error, total,
+    loading, error,
     setImporte, setDetalle, setMeta, agregarSuelto, borrar,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
@@ -192,40 +226,46 @@ const Gastos = () => {
     : conceptos.filter((c) => aplicaEnMes(c, mes) || porConcepto[c.id]);
   const ocultos = conceptos.length - visibles.length;
 
-  // Resumen de estado del mes.
-  const pagado = visibles.reduce((a, c) => {
-    const g = porConcepto[c.id];
-    return a + (g?.pagado ? Number(g.monto) || 0 : 0);
-  }, 0);
-  const pendiente = visibles.reduce((a, c) => {
-    const g = porConcepto[c.id];
-    return a + (g && !g.pagado ? Number(g.monto) || 0 : 0);
-  }, 0);
-  const faltan = visibles.filter((c) => !porConcepto[c.id]).length;
+  const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
+  const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
+
+  const totalSueltos  = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
+  const totalIngresos = sumaPorTipo(ingresoCs, porConcepto, () => true);
+  const totalGastos   = sumaPorTipo(gastoCs, porConcepto, () => true) + totalSueltos;
+  const balance       = totalIngresos - totalGastos;
+
+  // Estado de pago (solo gastos).
+  const pendiente = sumaPorTipo(gastoCs, porConcepto, (g) => !g.pagado) + totalSueltos;
+  const faltan = gastoCs.filter((c) => !porConcepto[c.id]).length;
 
   return (
     <Layout>
       <div className="gastos-page">
         <header className="pg-header">
           <div>
-            <h1>💸 Gastos</h1>
+            <h1>💸 Gastos e ingresos</h1>
             <p className="pg-sub">Completá el importe de cada concepto del mes</p>
           </div>
           <MesSelector mes={mes} onChange={setMes} />
         </header>
 
-        <div className="total-card">
-          <span className="tc-label">Total del mes</span>
-          <span className="tc-valor">{formatMoneda(total)}</span>
+        <div className={`total-card ${balance < 0 ? 'neg' : ''}`}>
+          <span className="tc-label">Balance del mes</span>
+          <span className="tc-valor">{formatMoneda(balance)}</span>
+          <span className="tc-sub">{formatMoneda(totalIngresos)} ingresos − {formatMoneda(totalGastos)} gastos</span>
         </div>
 
         <div className="estado-tiles">
-          <div className="et et-pagado">
-            <span className="et-label">✓ Pagado</span>
-            <span className="et-valor">{formatMoneda(pagado)}</span>
+          <div className="et et-ingreso">
+            <span className="et-label">💰 Ingresos</span>
+            <span className="et-valor">{formatMoneda(totalIngresos)}</span>
+          </div>
+          <div className="et et-gasto">
+            <span className="et-label">💸 Gastos</span>
+            <span className="et-valor">{formatMoneda(totalGastos)}</span>
           </div>
           <div className="et et-pendiente">
-            <span className="et-label">● Pendiente</span>
+            <span className="et-label">● Pendiente de pago</span>
             <span className="et-valor">{formatMoneda(pendiente)}</span>
           </div>
           <div className="et et-faltan">
@@ -238,11 +278,27 @@ const Gastos = () => {
           <div className="pg-centro"><div className="spinner" /></div>
         ) : error ? (
           <p className="pg-error">{error}</p>
+        ) : conceptos.length === 0 ? (
+          <section className="card">
+            <p className="pg-vacio-inline">
+              No hay conceptos. Agregalos desde la sección <strong>Conceptos</strong>.
+            </p>
+          </section>
         ) : (
           <>
+            {ingresoCs.length > 0 && (
+              <section className="card">
+                <h2 className="card-titulo">
+                  <span>💰 Ingresos <span className="card-sub">{formatMoneda(totalIngresos)}</span></span>
+                </h2>
+                <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
+                  onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+              </section>
+            )}
+
             <section className="card">
               <h2 className="card-titulo">
-                <span>Conceptos del mes</span>
+                <span>💸 Gastos <span className="card-sub">{formatMoneda(totalGastos)}</span></span>
                 {conceptos.length > 0 && (
                   <label className="ver-todos">
                     <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
@@ -250,39 +306,11 @@ const Gastos = () => {
                   </label>
                 )}
               </h2>
-              {conceptos.length === 0 ? (
-                <p className="pg-vacio-inline">
-                  No hay conceptos. Agregalos desde la sección <strong>Estructura</strong>.
-                </p>
-              ) : visibles.length === 0 ? (
-                <p className="pg-vacio-inline">
-                  Ningún concepto aplica a este mes. Activá <strong>Ver todos</strong> para verlos igual.
-                </p>
+              {gastoCs.length === 0 ? (
+                <p className="pg-vacio-inline">Sin gastos este mes.</p>
               ) : (
-                <div className="concepto-lista">
-                  {agruparConceptos(visibles).map((g) => {
-                    const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
-                    return grupoNombre ? (
-                      <div className="grupo-bloque" key={`g-${g.grupoId}`}>
-                        <div className="grupo-head">
-                          <span className="grupo-nombre">{grupoNombre}</span>
-                          <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(g.items, porConcepto))}</span>
-                        </div>
-                        {g.items.map((c) => (
-                          <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
-                            gasto={porConcepto[c.id]} onGuardarMonto={setImporte}
-                            onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
-                        ))}
-                      </div>
-                    ) : (
-                      g.items.map((c) => (
-                        <ConceptoRow key={c.id} concepto={c}
-                          gasto={porConcepto[c.id]} onGuardarMonto={setImporte}
-                          onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
-                      ))
-                    );
-                  })}
-                </div>
+                <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
+                  onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
               )}
             </section>
 

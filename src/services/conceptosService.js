@@ -22,11 +22,12 @@ export const listarConceptos = async (hogarId) => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-export const crearConcepto = async (hogarId, { nombre, categoriaId, grupoId, frecuencia, mesAncla }, orden) => {
+export const crearConcepto = async (hogarId, { nombre, categoriaId, grupoId, frecuencia, mesAncla, tipo }, orden) => {
   const payload = {
     nombre: nombre.trim(),
     categoriaId: categoriaId || '',
     grupoId: grupoId || '',
+    tipo: tipo || 'gasto', // 'gasto' | 'ingreso'
     frecuencia: frecuencia || 'mensual',
     mesAncla: mesAncla || '',
     orden: orden ?? Date.now(),

@@ -364,3 +364,15 @@
   .concepto-row { flex-wrap: wrap; }
   .cr-inline-meta { order: 3; width: 100%; padding-left: 48px; }
 }
+
+/* Balance negativo + subtítulo del total */
+.total-card.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
+.tc-sub { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+
+/* Tiles ingresos/gastos */
+.et-ingreso { border-color: #a7f3d0; }
+.et-ingreso .et-label { color: var(--color-success); }
+.et-gasto { border-color: #e9d5ff; }
+.et-gasto .et-label { color: var(--color-primary); }
+.estado-tiles { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 760px) { .estado-tiles { grid-template-columns: 1fr 1fr; } }

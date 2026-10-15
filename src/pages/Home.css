@@ -35,3 +35,6 @@
   .home-cards { grid-template-columns: 1fr; }
   .barra-row { grid-template-columns: 120px 1fr auto; }
 }
+
+/* Balance negativo en el dashboard */
+.home-card.destacado.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
