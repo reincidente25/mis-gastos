@@ -39,7 +39,26 @@ export const useGastosMes = (mes) => {
         listarConceptos(hogarId),
         listarGastosMes(hogarId, mes),
       ]);
-      setConceptos(cs.filter((c) => c.activo));
+      const activos = cs.filter((c) => c.activo);
+
+      // Backfill: si un gasto de este mes tiene desglose y su concepto todavía
+      // no tiene plantilla guardada, la guardamos (para que se replique a otros
+      // meses). Cubre datos cargados antes de existir la plantilla.
+      const porId = Object.fromEntries(activos.map((c) => [c.id, c]));
+      for (const g of gs) {
+        const c = g.conceptoId && porId[g.conceptoId];
+        if (c && g.items?.length && !(c.itemsPlantilla?.length)) {
+          const plantilla = g.items
+            .filter((it) => it.detalle)
+            .map((it) => ({ detalle: it.detalle, moneda: it.moneda === 'usd' ? 'usd' : 'ars' }));
+          if (plantilla.length) {
+            c.itemsPlantilla = plantilla;
+            actualizarConcepto(hogarId, c.id, { itemsPlantilla: plantilla }).catch(() => {});
+          }
+        }
+      }
+
+      setConceptos(activos);
       setGastos(gs);
     } catch (err) {
       console.error(err);
