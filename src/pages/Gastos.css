@@ -309,3 +309,38 @@
 }
 
 @media (max-width: 640px) { .cr-meta { padding-left: 0; } }
+
+/* Tiles de estado del mes */
+.estado-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.et {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 12px; padding: 13px 16px; display: flex; flex-direction: column; gap: 3px;
+  box-shadow: var(--shadow-sm);
+}
+.et-label { font-size: 12px; font-weight: 700; }
+.et-valor { font-size: 20px; font-weight: 700; }
+.et-pagado    { border-color: #a7f3d0; }
+.et-pagado .et-label { color: var(--color-success); }
+.et-pendiente { border-color: #fde68a; }
+.et-pendiente .et-label { color: #b45309; }
+.et-faltan .et-label { color: var(--color-muted); }
+
+/* Chip de estado por concepto */
+.cr-estado { font-size: 10px; font-weight: 700; border-radius: 5px; padding: 1px 7px; margin-left: 8px; white-space: nowrap; }
+.est-pagado    { color: var(--color-success); background: #ecfdf5; }
+.est-pendiente { color: #b45309; background: #fffbeb; }
+.est-vencido   { color: var(--color-danger); background: #fef2f2; }
+.est-sincargar { color: #64748b; background: #f1f5f9; }
+
+/* Barra de color a la izquierda según estado */
+.concepto-row.estado-pagado    { box-shadow: inset 3px 0 0 #10b981; }
+.concepto-row.estado-pendiente { box-shadow: inset 3px 0 0 #f59e0b; }
+.concepto-row.estado-vencido   { box-shadow: inset 3px 0 0 #ef4444; }
+.concepto-row.estado-sincargar { box-shadow: inset 3px 0 0 #e2e8f0; }
+.concepto-row { padding-left: 10px; }
+.grupo-bloque .concepto-row { padding-left: 14px; }
+
+@media (max-width: 640px) {
+  .estado-tiles { grid-template-columns: 1fr 1fr; }
+  .et-faltan { grid-column: 1 / -1; }
+}

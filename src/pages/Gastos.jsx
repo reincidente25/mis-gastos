@@ -6,8 +6,19 @@ import AmountInput from '../components/AmountInput';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
-import { formatMoneda, mesActual, aplicaEnMes } from '../utils/format';
+import { formatMoneda, mesActual, aplicaEnMes, hoy } from '../utils/format';
 import './Gastos.css';
+
+// Estado de un concepto en el mes: pagado / vencido / pendiente / falta cargar.
+const estadoGasto = (gasto) => {
+  if (!gasto) return 'sincargar';
+  if (gasto.pagado) return 'pagado';
+  if (gasto.vencimiento && gasto.vencimiento < hoy()) return 'vencido';
+  return 'pendiente';
+};
+const ESTADO_LABEL = {
+  pagado: 'Pagado', vencido: 'Vencido', pendiente: 'Pendiente', sincargar: 'Falta cargar',
+};
 
 // Agrupa conceptos por grupoId, preservando el orden de aparición.
 // Devuelve [{ grupoId, items }]; grupoId '' = sin grupo (sin encabezado).
@@ -106,11 +117,12 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
   const items = gasto?.items || [];
   const tieneItems = items.length > 0;
   const tieneGasto = Boolean(gasto);
+  const estado = estadoGasto(gasto);
   const [abierto, setAbierto] = useState(false);
 
   return (
     <>
-      <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
         <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
           {cat.icon}
         </span>
@@ -120,7 +132,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
             {concepto.frecuencia && concepto.frecuencia !== 'mensual' && (
               <span className="cr-frec">{getFrecuencia(concepto.frecuencia).corto}</span>
             )}
-            {gasto?.pagado && <span className="cr-pagado">✓ pagado</span>}
+            <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
           </span>
           <span className="cr-cat">
             {cat.nombre}{tieneItems ? ` · ${items.length} ítems` : ''}
@@ -183,6 +195,17 @@ const Gastos = () => {
     : conceptos.filter((c) => aplicaEnMes(c, mes) || porConcepto[c.id]);
   const ocultos = conceptos.length - visibles.length;
 
+  // Resumen de estado del mes.
+  const pagado = visibles.reduce((a, c) => {
+    const g = porConcepto[c.id];
+    return a + (g?.pagado ? Number(g.monto) || 0 : 0);
+  }, 0);
+  const pendiente = visibles.reduce((a, c) => {
+    const g = porConcepto[c.id];
+    return a + (g && !g.pagado ? Number(g.monto) || 0 : 0);
+  }, 0);
+  const faltan = visibles.filter((c) => !porConcepto[c.id]).length;
+
   return (
     <Layout>
       <div className="gastos-page">
@@ -197,6 +220,21 @@ const Gastos = () => {
         <div className="total-card">
           <span className="tc-label">Total del mes</span>
           <span className="tc-valor">{formatMoneda(total)}</span>
+        </div>
+
+        <div className="estado-tiles">
+          <div className="et et-pagado">
+            <span className="et-label">✓ Pagado</span>
+            <span className="et-valor">{formatMoneda(pagado)}</span>
+          </div>
+          <div className="et et-pendiente">
+            <span className="et-label">● Pendiente</span>
+            <span className="et-valor">{formatMoneda(pendiente)}</span>
+          </div>
+          <div className="et et-faltan">
+            <span className="et-label">Falta cargar</span>
+            <span className="et-valor">{faltan}</span>
+          </div>
         </div>
 
         {loading ? (
