@@ -13,6 +13,8 @@ const Grupos = () => {
   const { grupos, getCat, addGrupo, editGrupo, delGrupo } = useEstructura();
   const [nombre, setNombre] = useState('');
   const [conceptos, setConceptos] = useState([]);
+  const [cerrados, setCerrados] = useState({});
+  const toggle = (id) => setCerrados((c) => ({ ...c, [id]: !c[id] }));
 
   const cargar = useCallback(async () => {
     if (!hogarId) return;
@@ -72,9 +74,13 @@ const Grupos = () => {
           <div className="arbol-lista">
             {grupos.map((g) => {
               const items = conceptosDe(g.id);
+              const abierto = !cerrados[g.id];
               return (
                 <div className="grupo-arbol" key={g.id}>
                   <div className="grupo-arbol-head">
+                    <button className="ga-toggle" onClick={() => toggle(g.id)} title={abierto ? 'Colapsar' : 'Expandir'}>
+                      {abierto ? '▾' : '▸'}
+                    </button>
                     <span className="ga-chip">📁</span>
                     <input className="cc-nombre-input" defaultValue={g.nombre} maxLength={30}
                       onBlur={(e) => e.target.value.trim() && editGrupo(g.id, { nombre: e.target.value.trim() })}
@@ -82,11 +88,13 @@ const Grupos = () => {
                     <span className="ga-count">{items.length}</span>
                     <button className="suelto-borrar" onClick={() => borrar(g)} title="Borrar">🗑️</button>
                   </div>
-                  <div className="grupo-arbol-items">
-                    {items.length === 0
-                      ? <span className="ga-vacio">Sin conceptos asignados</span>
-                      : items.map((c) => <RamaConcepto key={c.id} c={c} />)}
-                  </div>
+                  {abierto && (
+                    <div className="grupo-arbol-items">
+                      {items.length === 0
+                        ? <span className="ga-vacio">Sin conceptos asignados</span>
+                        : items.map((c) => <RamaConcepto key={c.id} c={c} />)}
+                    </div>
+                  )}
                 </div>
               );
             })}
