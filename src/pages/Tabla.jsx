@@ -4,8 +4,16 @@ import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
-import { formatMoneda, mesActual, mesLegible, aplicaEnMes } from '../utils/format';
+import { formatMoneda, mesActual, mesLegible, aplicaEnMes, fechaCorta, hoy } from '../utils/format';
 import './Tabla.css';
+
+// Estado de pago de un gasto/ingreso.
+const estadoDe = (gasto, esIngreso) => {
+  if (!gasto) return { txt: '—', cls: 'est-sin' };
+  if (gasto.pagado) return { txt: esIngreso ? 'Cobrado' : 'Pagado', cls: 'est-ok' };
+  if (gasto.vencimiento && gasto.vencimiento < hoy()) return { txt: 'Vencido', cls: 'est-mal' };
+  return { txt: esIngreso ? 'A cobrar' : 'Pendiente', cls: 'est-pend' };
+};
 
 // Agrupa por grupoId preservando orden; grupo '' al final.
 const agrupar = (conceptos) => {
@@ -43,40 +51,46 @@ const Tabla = () => {
   const totalGastos = sumar(gastoCs);
   const totalIngresos = ingresoCs.reduce((a, c) => a + (porConcepto[c.id]?.pagado ? montoDe(c) : 0), 0);
 
-  const Seccion = ({ titulo, grupos, total }) => (
+  const Seccion = ({ titulo, grupos, total, esIngreso }) => (
     <table className="tabla-excel">
       <thead>
-        <tr><th className="th-titulo" colSpan={2}>{titulo}</th></tr>
-        <tr><th>Concepto</th><th className="th-imp">Importe</th></tr>
+        <tr><th className="th-titulo" colSpan={4}>{titulo}</th></tr>
+        <tr>
+          <th>Concepto</th>
+          <th className="th-vence">Vence</th>
+          <th className="th-estado">Estado</th>
+          <th className="th-imp">Importe</th>
+        </tr>
       </thead>
       <tbody>
         {grupos.map((g) => (
-          <GrupoFilas key={g.grupoId || '__sin'} g={g} />
+          <GrupoFilas key={g.grupoId || '__sin'} g={g} esIngreso={esIngreso} />
         ))}
       </tbody>
       <tfoot>
         <tr className="fila-total">
-          <td>Total {titulo.split(' ')[0]}</td>
+          <td colSpan={3}>Total {titulo.split(' ')[0]}</td>
           <td className="td-imp">{formatMoneda(total)}</td>
         </tr>
       </tfoot>
     </table>
   );
 
-  const GrupoFilas = ({ g }) => {
+  const GrupoFilas = ({ g, esIngreso }) => {
     const nombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : null;
     const sub = sumar(g.items);
     return (
       <>
         {nombre && (
           <tr className="fila-grupo">
-            <td>{nombre}</td>
+            <td colSpan={3}>{nombre}</td>
             <td className="td-imp">{formatMoneda(sub)}</td>
           </tr>
         )}
         {g.items.map((c) => {
           const m = montoDe(c);
           const gasto = porConcepto[c.id];
+          const est = estadoDe(gasto, esIngreso);
           return (
             <tr key={c.id} className={m > 0 ? '' : 'fila-vacia'}>
               <td className="td-concepto">
@@ -84,6 +98,8 @@ const Tabla = () => {
                 {c.nombre}
                 {gasto?.items?.length ? <span className="td-items">· {gasto.items.length}</span> : null}
               </td>
+              <td className="td-vence">{!esIngreso && gasto?.vencimiento ? fechaCorta(gasto.vencimiento) : '—'}</td>
+              <td className="td-estado"><span className={`est-chip ${est.cls}`}>{est.txt}</span></td>
               <td className="td-imp"><Importe monto={m} /></td>
             </tr>
           );
@@ -117,7 +133,7 @@ const Tabla = () => {
           <div className="tablas-wrap">
             <Seccion titulo={`GASTOS ${mesLegible(mes).toUpperCase()}`} grupos={agrupar(gastoCs)} total={totalGastos} />
             {ingresoCs.length > 0 && (
-              <Seccion titulo={`INGRESOS ${mesLegible(mes).toUpperCase()}`} grupos={agrupar(ingresoCs)} total={totalIngresos} />
+              <Seccion titulo={`INGRESOS ${mesLegible(mes).toUpperCase()}`} grupos={agrupar(ingresoCs)} total={totalIngresos} esIngreso />
             )}
           </div>
         )}
