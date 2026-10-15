@@ -1,5 +1,6 @@
 // src/pages/Grupos.jsx
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useHogar } from '../context/HogarContext';
 import { useEstructura } from '../context/EstructuraContext';
@@ -11,6 +12,7 @@ const Grupos = () => {
   const { hogar } = useHogar();
   const hogarId = hogar?.id;
   const { grupos, getCat, addGrupo, editGrupo, delGrupo } = useEstructura();
+  const navigate = useNavigate();
   const [nombre, setNombre] = useState('');
   const [conceptos, setConceptos] = useState([]);
   const [cerrados, setCerrados] = useState({});
@@ -40,11 +42,13 @@ const Grupos = () => {
   const ChipConcepto = ({ c }) => {
     const cat = getCat(c.categoriaId);
     return (
-      <span className={`concepto-chip ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}
-        style={{ borderColor: `${cat.color}55` }} title={cat.nombre}>
+      <button type="button"
+        className={`concepto-chip ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}
+        style={{ borderColor: `${cat.color}55` }} title={`${cat.nombre} · editar`}
+        onClick={() => navigate(`/conceptos?c=${c.id}`)}>
         <span className="chip-icono" style={{ color: cat.color }}>{cat.icon}</span>
         {c.nombre}
-      </span>
+      </button>
     );
   };
 
@@ -81,19 +85,19 @@ const Grupos = () => {
                       {abierto ? '▾' : '▸'}
                     </button>
                     <span className="ga-chip">📁</span>
-                    <input className="cc-nombre-input" defaultValue={g.nombre} maxLength={30}
+                    <input className="cc-nombre-input ga-nombre-input" defaultValue={g.nombre} maxLength={30}
                       onBlur={(e) => e.target.value.trim() && editGrupo(g.id, { nombre: e.target.value.trim() })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+                    {abierto && (
+                      <div className="head-chips">
+                        {items.length === 0
+                          ? <span className="ga-vacio">Sin conceptos</span>
+                          : items.map((c) => <ChipConcepto key={c.id} c={c} />)}
+                      </div>
+                    )}
                     <span className="ga-count">{items.length}</span>
                     <button className="suelto-borrar" onClick={() => borrar(g)} title="Borrar">🗑️</button>
                   </div>
-                  {abierto && (
-                    <div className="grupo-arbol-items">
-                      {items.length === 0
-                        ? <span className="ga-vacio">Sin conceptos asignados</span>
-                        : items.map((c) => <ChipConcepto key={c.id} c={c} />)}
-                    </div>
-                  )}
                 </div>
               );
             })}

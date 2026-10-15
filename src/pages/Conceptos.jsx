@@ -1,5 +1,6 @@
 // src/pages/Conceptos.jsx
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useHogar } from '../context/HogarContext';
 import { useEstructura } from '../context/EstructuraContext';
@@ -11,7 +12,7 @@ import {
 import './Gastos.css';
 import './Estructura.css';
 
-const ItemConcepto = ({ c, archivado, categorias, grupos, onGuardar, onToggle, onBorrar }) => {
+const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, onToggle, onBorrar }) => {
   const [nombre, setNombre] = useState(c.nombre);
   const frec = c.frecuencia || 'mensual';
 
@@ -22,7 +23,7 @@ const ItemConcepto = ({ c, archivado, categorias, grupos, onGuardar, onToggle, o
   };
 
   return (
-    <div className={`concepto-fila ${archivado ? 'archivado' : ''}`}>
+    <div id={`concepto-${c.id}`} className={`concepto-fila ${archivado ? 'archivado' : ''} ${resaltado ? 'resaltado' : ''}`}>
       <input className="cf-nombre" value={nombre} maxLength={60}
         onChange={(e) => setNombre(e.target.value)} onBlur={commitNombre}
         onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
@@ -68,6 +69,17 @@ const Conceptos = () => {
   const [frecuencia, setFrecuencia] = useState('mensual');
   const [tipo, setTipo] = useState('gasto');
   const [vista, setVista] = useState('grupo');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const destacado = searchParams.get('c');
+
+  // Al llegar desde un chip de Grupos, resaltar y centrar ese concepto.
+  useEffect(() => {
+    if (!destacado || loading) return;
+    const el = document.getElementById(`concepto-${destacado}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setSearchParams({}, { replace: true }), 2500);
+    return () => clearTimeout(t);
+  }, [destacado, loading, setSearchParams]);
 
   const cargar = useCallback(async () => {
     if (!hogarId) return;
@@ -111,7 +123,8 @@ const Conceptos = () => {
   const grid = (arr, arch) => (
     <div className="filas-lista">
       {arr.map((c) => (
-        <ItemConcepto key={c.id} c={c} archivado={arch} categorias={categorias} grupos={grupos}
+        <ItemConcepto key={c.id} c={c} archivado={arch} resaltado={c.id === destacado}
+          categorias={categorias} grupos={grupos}
           onGuardar={guardar} onToggle={toggle} onBorrar={borrar} />
       ))}
     </div>

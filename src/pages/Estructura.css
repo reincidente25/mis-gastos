@@ -138,3 +138,16 @@
   border-radius: 6px; flex-shrink: 0;
 }
 .ga-toggle:hover { background: #fff; }
+
+/* Chips en la cabecera del grupo */
+.ga-nombre-input { flex: 0 0 180px; max-width: 180px; }
+.head-chips { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.grupo-arbol-head .ga-count { margin-left: 8px; }
+
+/* Chip como botón clickeable */
+button.concepto-chip { cursor: pointer; font: inherit; }
+button.concepto-chip:hover { border-color: var(--color-primary); background: #fff; }
+
+/* Resaltado al llegar desde un chip */
+.concepto-fila.resaltado { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-soft); animation: flash 1.2s ease; }
+@keyframes flash { 0% { background: var(--color-primary-soft); } 100% { background: var(--color-surface-2); } }
