@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
-import AmountInput from '../components/AmountInput';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
@@ -18,6 +17,9 @@ const estadoGasto = (gasto) => {
 };
 const ESTADO_LABEL = {
   pagado: 'Pagado', vencido: 'Vencido', pendiente: 'Pendiente', sincargar: 'Falta cargar',
+};
+const ESTADO_LABEL_ING = {
+  pagado: 'Cobrado', vencido: 'Vencido', pendiente: 'A cobrar', sincargar: 'Falta cargar',
 };
 
 // Agrupa conceptos por grupoId, preservando el orden de aparición.
@@ -111,19 +113,25 @@ const DesgloseEditor = ({ items, onChange }) => {
   );
 };
 
-const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMonto, onGuardarDetalle, onGuardarMeta }) => {
+const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDetalle, onGuardarMeta }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
   const tieneItems = items.length > 0;
   const plantilla = concepto.itemsPlantilla || [];
-  const desglosado = tieneItems || plantilla.length > 0;
-  // Ítems a mostrar al abrir el desglose: los del mes, o la plantilla vacía.
+  const esIngreso = concepto.tipo === 'ingreso';
+  // Ítems a mostrar al abrir el detalle: los del mes, la plantilla vacía,
+  // el monto simple ya cargado, o una fila vacía.
   const seedItems = tieneItems
     ? items
-    : plantilla.map((d) => ({ detalle: d, monto: '' }));
+    : plantilla.length
+    ? plantilla.map((d) => ({ detalle: d, monto: '' }))
+    : gasto?.monto
+    ? [{ detalle: '', monto: gasto.monto }]
+    : [{ detalle: '', monto: '' }];
   const tieneGasto = Boolean(gasto);
   const estado = estadoGasto(gasto);
+  const estadoLabel = esIngreso ? ESTADO_LABEL_ING[estado] : ESTADO_LABEL[estado];
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -138,10 +146,10 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
             {concepto.frecuencia && concepto.frecuencia !== 'mensual' && (
               <span className="cr-frec">{getFrecuencia(concepto.frecuencia).corto}</span>
             )}
-            <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
+            <span className={`cr-estado est-${estado}`}>{estadoLabel}</span>
           </span>
           <span className="cr-cat">
-            {cat.nombre}{desglosado ? ` · ${(tieneItems ? items.length : plantilla.length)} ítems` : ''}
+            {cat.nombre}{tieneItems ? ` · ${items.length} ítems` : ''}
           </span>
         </span>
 
@@ -152,23 +160,14 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
             <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
               <input type="checkbox" checked={Boolean(gasto.pagado)}
                 onChange={(e) => onGuardarMeta(concepto, { pagado: e.target.checked })} />
-              Pagado
+              {esIngreso ? 'Cobrado' : 'Pagado'}
             </label>
           </div>
         )}
 
-        {desglosado ? (
-          <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
-            {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
-          </button>
-        ) : abierto ? (
-          <button className="cr-desglosar activo" title="Cerrar desglose" onClick={() => setAbierto(false)}>▾</button>
-        ) : (
-          <div className="cr-derecha">
-            <AmountInput value={gasto?.monto} onCommit={(monto) => onGuardarMonto(concepto, monto)} />
-            <button className="cr-desglosar" title="Desglosar en ítems" onClick={() => setAbierto(true)}>⋯</button>
-          </div>
-        )}
+        <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
+          {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+        </button>
       </div>
 
       {abierto && (
@@ -182,7 +181,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarMon
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarMonto, onGuardarDetalle, onGuardarMeta }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
@@ -194,14 +193,14 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarMonto, onGuardarD
           </div>
           {g.items.map((c) => (
             <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
-              gasto={porConcepto[c.id]} onGuardarMonto={onGuardarMonto}
+              gasto={porConcepto[c.id]}
               onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
           ))}
         </div>
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
-            gasto={porConcepto[c.id]} onGuardarMonto={onGuardarMonto}
+            gasto={porConcepto[c.id]}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
         ))
       );
@@ -222,7 +221,7 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error,
-    setImporte, setDetalle, setMeta, agregarSuelto, borrar,
+    setDetalle, setMeta, agregarSuelto, borrar,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
 
@@ -309,7 +308,7 @@ const Gastos = () => {
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
                 )}
               </section>
             ) : (
@@ -320,7 +319,7 @@ const Gastos = () => {
                       <span>💰 Ingresos <span className="card-sub">{formatMoneda(totalIngresos)}</span></span>
                     </h2>
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
                   </section>
                 )}
 
@@ -338,7 +337,7 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
                   )}
                 </section>
               </>
