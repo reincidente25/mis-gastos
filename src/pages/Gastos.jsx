@@ -89,11 +89,6 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, onGuardarMonto, onGuardar
   const tieneItems = items.length > 0;
   const [abierto, setAbierto] = useState(false);
 
-  const empezarDesglose = () => {
-    setAbierto(true);
-    onGuardarDetalle(concepto, [{ detalle: '', monto: gasto?.monto || '' }]);
-  };
-
   return (
     <>
       <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
@@ -116,17 +111,18 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, onGuardarMonto, onGuardar
           <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
             {formatMoneda(gasto.monto)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
           </button>
+        ) : abierto ? (
+          <button className="cr-desglosar activo" title="Cerrar desglose" onClick={() => setAbierto(false)}>▾</button>
         ) : (
           <div className="cr-derecha">
             <AmountInput value={gasto?.monto} onCommit={(monto) => onGuardarMonto(concepto, monto)} />
-            <button className="cr-desglosar" title="Desglosar en ítems" onClick={empezarDesglose}>⋯</button>
+            <button className="cr-desglosar" title="Desglosar en ítems" onClick={() => setAbierto(true)}>⋯</button>
           </div>
         )}
       </div>
 
-      {abierto && tieneItems && (
+      {abierto && (
         <DesgloseEditor
-          key={`${concepto.id}-${items.length}`}
           items={items}
           onChange={(nuevos) => onGuardarDetalle(concepto, nuevos)}
         />

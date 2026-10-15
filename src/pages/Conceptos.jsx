@@ -88,6 +88,7 @@ const Conceptos = () => {
   const [categoria, setCategoria] = useState('otros');
   const [frecuencia, setFrecuencia] = useState('mensual');
   const [guardando, setGuardando] = useState(false);
+  const [vista, setVista] = useState('lista'); // 'lista' | 'grupo'
 
   const cargar = useCallback(async () => {
     if (!hogarId) return;
@@ -136,6 +137,45 @@ const Conceptos = () => {
   const activos    = conceptos.filter((c) => c.activo);
   const archivados = conceptos.filter((c) => !c.activo);
 
+  // Agrupa por grupo/tag, con los "Sin grupo" al final.
+  const agrupar = (arr) => {
+    const orden = [], mapa = {};
+    arr.forEach((c) => {
+      const k = c.grupo || '';
+      if (!mapa[k]) { mapa[k] = { grupo: k, items: [] }; orden.push(k); }
+      mapa[k].items.push(c);
+    });
+    return orden
+      .sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0))
+      .map((k) => mapa[k]);
+  };
+
+  const renderCards = (arr, archivado) => (
+    <div className="cc-lista">
+      {arr.map((c) => (
+        <ItemConcepto key={c.id} c={c} archivado={archivado} onGuardar={guardarCampo}
+          onToggle={toggleArchivo} onBorrar={borrarUno} />
+      ))}
+    </div>
+  );
+
+  const renderActivos = () => {
+    if (vista === 'lista') return renderCards(activos, false);
+    return (
+      <div className="cc-grupos">
+        {agrupar(activos).map((g) => (
+          <div className="cc-grupo" key={g.grupo || '__sin'}>
+            <div className="cc-grupo-head">
+              <span>{g.grupo || 'Sin grupo'}</span>
+              <span className="card-sub">{g.items.length}</span>
+            </div>
+            {renderCards(g.items, false)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="gastos-page">
@@ -174,20 +214,19 @@ const Conceptos = () => {
             <section className="card">
               <h2 className="card-titulo">
                 <span>Activos <span className="card-sub">{activos.length}</span></span>
-                {conceptos.length > 0 && (
-                  <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>
-                )}
+                <div className="cc-titulo-acciones">
+                  <div className="cc-toggle">
+                    <button className={vista === 'lista' ? 'activo' : ''} onClick={() => setVista('lista')}>Lista</button>
+                    <button className={vista === 'grupo' ? 'activo' : ''} onClick={() => setVista('grupo')}>Por grupo</button>
+                  </div>
+                  {conceptos.length > 0 && (
+                    <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>
+                  )}
+                </div>
               </h2>
               {activos.length === 0 ? (
                 <p className="pg-vacio-inline">Agregá tu primer concepto con el formulario de arriba.</p>
-              ) : (
-                <div className="cc-lista">
-                  {activos.map((c) => (
-                    <ItemConcepto key={c.id} c={c} onGuardar={guardarCampo}
-                      onToggle={toggleArchivo} onBorrar={borrarUno} />
-                  ))}
-                </div>
-              )}
+              ) : renderActivos()}
             </section>
 
             {archivados.length > 0 && (
