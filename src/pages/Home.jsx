@@ -23,7 +23,8 @@ const Home = () => {
     return (g) => (g.conceptoId ? m[g.conceptoId] || 'gasto' : 'gasto');
   }, [conceptos]);
 
-  const totalIngresos = gastos.reduce((a, g) => a + (tipoDe(g) === 'ingreso' ? Number(g.monto) || 0 : 0), 0);
+  // El ingreso impacta solo cuando está cobrado (pagado === true).
+  const totalIngresos = gastos.reduce((a, g) => a + (tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
   const totalGastos   = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
   const pagado    = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
   const pendiente = totalGastos - pagado;
@@ -61,7 +62,7 @@ const Home = () => {
             {/* KPIs */}
             <div className="kpi-row">
               <div className="kpi">
-                <span className="kpi-label">💰 Ingresos</span>
+                <span className="kpi-label">💰 Ingresos cobrados</span>
                 <span className="kpi-valor ingreso">{formatMoneda(totalIngresos)}</span>
               </div>
               <div className="kpi">

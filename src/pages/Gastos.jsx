@@ -236,7 +236,8 @@ const Gastos = () => {
   const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
 
   const totalSueltos  = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
-  const totalIngresos = sumaPorTipo(ingresoCs, porConcepto, () => true);
+  const ingresosCobrados = sumaPorTipo(ingresoCs, porConcepto, (g) => g.pagado);
+  const ingresosTotal    = sumaPorTipo(ingresoCs, porConcepto, () => true);
   const totalGastos   = sumaPorTipo(gastoCs, porConcepto, () => true) + totalSueltos;
 
   // Estadísticas por estado, A NIVEL CONCEPTO (no por grupo), incluyendo
@@ -316,7 +317,9 @@ const Gastos = () => {
                 {ingresoCs.length > 0 && (
                   <section className="card">
                     <h2 className="card-titulo">
-                      <span>💰 Ingresos <span className="card-sub">{formatMoneda(totalIngresos)}</span></span>
+                      <span>💰 Ingresos <span className="card-sub">
+                        {formatMoneda(ingresosCobrados)} cobrado{ingresosTotal !== ingresosCobrados ? ` de ${formatMoneda(ingresosTotal)}` : ''}
+                      </span></span>
                     </h2>
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
