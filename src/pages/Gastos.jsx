@@ -203,43 +203,6 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarMonto, onGuardarD
   </div>
 );
 
-// Grupos en grilla de columnas, colapsables (acordeón). Para la sección de gastos.
-const GastosGrid = ({ lista, porConcepto, getGrp, onGuardarMonto, onGuardarDetalle, onGuardarMeta }) => {
-  const grupos = agruparConceptos(lista);
-  const [cerrados, setCerrados] = useState({});
-  const toggle = (k) => setCerrados((c) => ({ ...c, [k]: !c[k] }));
-
-  return (
-    <div className="grupos-grid">
-      {grupos.map((g) => {
-        const key = g.grupoId || '__sin';
-        const nombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : 'Sin grupo';
-        const abierto = !cerrados[key];
-        return (
-          <div className="gg-card" key={key}>
-            <button type="button" className="gg-head" onClick={() => toggle(key)}>
-              <span className="gg-nombre">{nombre}</span>
-              <span className="gg-right">
-                <span className="gg-sub">{formatMoneda(subtotalGrupo(g.items, porConcepto))}</span>
-                <span className="gg-chev">{abierto ? '▾' : '▸'}</span>
-              </span>
-            </button>
-            {abierto && (
-              <div className="gg-body">
-                {g.items.map((c) => (
-                  <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={g.grupoId ? nombre : ''}
-                    gasto={porConcepto[c.id]} onGuardarMonto={onGuardarMonto}
-                    onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
 const sumaPorTipo = (conceptos, porConcepto, cond) =>
   conceptos.reduce((a, c) => {
     const g = porConcepto[c.id];
@@ -277,7 +240,7 @@ const Gastos = () => {
 
   return (
     <Layout>
-      <div className="gastos-page ancho">
+      <div className="gastos-page">
         <header className="pg-header">
           <div>
             <h1>💸 Gastos e ingresos</h1>
@@ -346,7 +309,7 @@ const Gastos = () => {
               {gastoCs.length === 0 ? (
                 <p className="pg-vacio-inline">Sin gastos este mes.</p>
               ) : (
-                <GastosGrid lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
+                <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
                   onGuardarMonto={setImporte} onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} />
               )}
             </section>
