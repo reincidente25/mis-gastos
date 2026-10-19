@@ -217,7 +217,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
 
 // Bloque de un grupo, colapsable desde su encabezado.
 const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
-  const [abierto, setAbierto] = useState(true);
+  const [abierto, setAbierto] = useState(false);
   return (
     <div className="grupo-bloque">
       <button className="grupo-head" onClick={() => setAbierto((a) => !a)}>
