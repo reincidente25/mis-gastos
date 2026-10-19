@@ -24,6 +24,14 @@
 .comparativa .th-imp, .comparativa .td-imp { width: 130px; }
 
 .td-concepto { color: var(--color-text); }
+/* Grupo como etiqueta en la misma línea del concepto */
+.td-grupo {
+  margin-left: 8px; font-size: 10px; font-weight: 600; color: var(--color-muted);
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+}
+/* Filas más compactas en la comparativa (menos scroll) */
+.comparativa th, .comparativa td { padding: 3px 10px; }
 .td-indent { display: inline-block; width: 16px; }
 .td-items { color: var(--color-muted); font-size: 11px; margin-left: 4px; }
 

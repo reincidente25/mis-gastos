@@ -66,7 +66,9 @@ const Tabla = () => {
   const sumar = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
 
   const Seccion = ({ titulo, lista }) => {
-    const grupos = agrupar(lista);
+    // Ordenados por grupo, pero sin filas de subtotal: el grupo va como
+    // etiqueta en la misma línea del concepto.
+    const ordenada = agrupar(lista).flatMap((g) => g.items);
     const totA = sumar(lista, mA), totB = sumar(lista, mB), totC = sumar(lista, mC);
     const vTot = variacion(totA, totB);
     return (
@@ -82,9 +84,23 @@ const Tabla = () => {
           </tr>
         </thead>
         <tbody>
-          {grupos.map((g) => (
-            <GrupoFilas key={g.grupoId || '__sin'} g={g} />
-          ))}
+          {ordenada.map((c) => {
+            const a = mA(c), b = mB(c), cc = mC(c);
+            const v = variacion(a, b);
+            const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
+            return (
+              <tr key={c.id} className={b > 0 ? '' : 'fila-vacia'}>
+                <td className="td-concepto">
+                  {c.nombre}
+                  {grupo && <span className="td-grupo">{grupo}</span>}
+                </td>
+                <td className="td-imp"><Monto v={a} /></td>
+                <td className="td-imp td-actual"><Monto v={b} /></td>
+                <td className={`td-var ${v.cls}`}>{v.txt}</td>
+                <td className="td-imp"><Monto v={cc} /></td>
+              </tr>
+            );
+          })}
         </tbody>
         <tfoot>
           <tr className="fila-total">
@@ -96,41 +112,6 @@ const Tabla = () => {
           </tr>
         </tfoot>
       </table>
-    );
-  };
-
-  const GrupoFilas = ({ g }) => {
-    const nombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : null;
-    const sA = sumar(g.items, mA), sB = sumar(g.items, mB), sC = sumar(g.items, mC);
-    const vG = variacion(sA, sB);
-    return (
-      <>
-        {nombre && (
-          <tr className="fila-grupo">
-            <td>{nombre}</td>
-            <td className="td-imp">{formatMoneda(sA)}</td>
-            <td className="td-imp td-actual">{formatMoneda(sB)}</td>
-            <td className={`td-var ${vG.cls}`}>{vG.txt}</td>
-            <td className="td-imp">{formatMoneda(sC)}</td>
-          </tr>
-        )}
-        {g.items.map((c) => {
-          const a = mA(c), b = mB(c), cc = mC(c);
-          const v = variacion(a, b);
-          return (
-            <tr key={c.id} className={b > 0 ? '' : 'fila-vacia'}>
-              <td className="td-concepto">
-                {nombre ? <span className="td-indent" /> : null}
-                {c.nombre}
-              </td>
-              <td className="td-imp"><Monto v={a} /></td>
-              <td className="td-imp td-actual"><Monto v={b} /></td>
-              <td className={`td-var ${v.cls}`}>{v.txt}</td>
-              <td className="td-imp"><Monto v={cc} /></td>
-            </tr>
-          );
-        })}
-      </>
     );
   };
 
