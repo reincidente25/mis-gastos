@@ -89,8 +89,9 @@ const Tabla = () => {
             const vIzq = variacion(a, b);   // anterior → actual
             const vDer = variacion(b, cc);  // actual → próximo
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
+            const tono = vIzq.cls === 'var-sube' ? 'fila-sube' : vIzq.cls === 'var-baja' ? 'fila-baja' : '';
             return (
-              <tr key={c.id} className={b > 0 ? '' : 'fila-vacia'}>
+              <tr key={c.id} className={`${b > 0 ? '' : 'fila-vacia'} ${tono}`}>
                 <td className="td-concepto">
                   {c.nombre}
                   {grupo && <span className="td-grupo">{grupo}</span>}
