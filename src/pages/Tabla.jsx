@@ -39,24 +39,24 @@ const Monto = ({ v }) => (
 
 const Tabla = () => {
   const [mes, setMes] = useState(mesActual());
-  const mesPrev = mesVecino(mes, -1);
-  const mesNext = mesVecino(mes, 1);
+  const mes2 = mesVecino(mes, -2); // dos meses atrás
+  const mes1 = mesVecino(mes, -1); // mes anterior
 
-  const prev = useGastosMes(mesPrev);
+  const dos = useGastosMes(mes2);
+  const uno = useGastosMes(mes1);
   const curr = useGastosMes(mes);
-  const next = useGastosMes(mesNext);
   const { getGrp } = useEstructura();
 
-  const loading = curr.loading || prev.loading || next.loading;
+  const loading = curr.loading || uno.loading || dos.loading;
   const conceptos = curr.conceptos;
 
-  const mA = (c) => Number(prev.porConcepto[c.id]?.monto) || 0;
-  const mB = (c) => Number(curr.porConcepto[c.id]?.monto) || 0;
-  const mC = (c) => Number(next.porConcepto[c.id]?.monto) || 0;
+  const mA = (c) => Number(dos.porConcepto[c.id]?.monto) || 0;  // mes -2
+  const mB = (c) => Number(uno.porConcepto[c.id]?.monto) || 0;  // mes -1
+  const mC = (c) => Number(curr.porConcepto[c.id]?.monto) || 0; // actual
 
   // Visibles: conceptos que aplican o tienen gasto en alguno de los 3 meses.
   const aplicaAlguno = (c) =>
-    aplicaEnMes(c, mesPrev) || aplicaEnMes(c, mes) || aplicaEnMes(c, mesNext) ||
+    aplicaEnMes(c, mes2) || aplicaEnMes(c, mes1) || aplicaEnMes(c, mes) ||
     mA(c) || mB(c) || mC(c);
 
   const visibles = conceptos.filter(aplicaAlguno);
@@ -76,31 +76,31 @@ const Tabla = () => {
           <tr><th className="th-titulo" colSpan={6}>{titulo}</th></tr>
           <tr>
             <th>Concepto</th>
-            <th className="th-imp">{mesCorto(mesPrev)}</th>
+            <th className="th-imp">{mesCorto(mes2)}</th>
+            <th className="th-var">Var.</th>
+            <th className="th-imp">{mesCorto(mes1)}</th>
             <th className="th-var">Var.</th>
             <th className="th-imp th-actual">{mesCorto(mes)}</th>
-            <th className="th-var">Var.</th>
-            <th className="th-imp">{mesCorto(mesNext)}</th>
           </tr>
         </thead>
         <tbody>
           {ordenada.map((c) => {
             const a = mA(c), b = mB(c), cc = mC(c);
-            const vIzq = variacion(a, b);   // anterior → actual
-            const vDer = variacion(b, cc);  // actual → próximo
+            const vIzq = variacion(a, b);   // mes-2 → mes-1
+            const vDer = variacion(b, cc);  // mes-1 → actual
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
-            const tono = vIzq.cls === 'var-sube' ? 'fila-sube' : vIzq.cls === 'var-baja' ? 'fila-baja' : '';
+            const tono = vDer.cls === 'var-sube' ? 'fila-sube' : vDer.cls === 'var-baja' ? 'fila-baja' : '';
             return (
-              <tr key={c.id} className={`${b > 0 ? '' : 'fila-vacia'} ${tono}`}>
+              <tr key={c.id} className={`${cc > 0 ? '' : 'fila-vacia'} ${tono}`}>
                 <td className="td-concepto">
                   {c.nombre}
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
                 <td className="td-imp"><Monto v={a} /></td>
                 <td className={`td-var ${vIzq.cls}`}>{vIzq.txt}</td>
-                <td className="td-imp td-actual"><Monto v={b} /></td>
+                <td className="td-imp"><Monto v={b} /></td>
                 <td className={`td-var ${vDer.cls}`}>{vDer.txt}</td>
-                <td className="td-imp"><Monto v={cc} /></td>
+                <td className="td-imp td-actual"><Monto v={cc} /></td>
               </tr>
             );
           })}
@@ -110,9 +110,9 @@ const Tabla = () => {
             <td>Total</td>
             <td className="td-imp">{formatMoneda(totA)}</td>
             <td className={`td-var ${variacion(totA, totB).cls}`}>{variacion(totA, totB).txt}</td>
-            <td className="td-imp td-actual">{formatMoneda(totB)}</td>
+            <td className="td-imp">{formatMoneda(totB)}</td>
             <td className={`td-var ${variacion(totB, totC).cls}`}>{variacion(totB, totC).txt}</td>
-            <td className="td-imp">{formatMoneda(totC)}</td>
+            <td className="td-imp td-actual">{formatMoneda(totC)}</td>
           </tr>
         </tfoot>
       </table>
@@ -125,7 +125,7 @@ const Tabla = () => {
         <header className="pg-header">
           <div>
             <h1>📋 Comparativa</h1>
-            <p className="pg-sub">{mesLegible(mesPrev)} · {mesLegible(mes)} · {mesLegible(mesNext)}</p>
+            <p className="pg-sub">{mesLegible(mes2)} · {mesLegible(mes1)} · {mesLegible(mes)}</p>
           </div>
           <MesSelector mes={mes} onChange={setMes} />
         </header>
