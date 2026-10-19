@@ -3,6 +3,7 @@
 // onCrear({ nombre, tipo, categoriaId, grupoId, frecuencia }).
 import { useState } from 'react';
 import { FRECUENCIAS } from '../../config/frecuencias';
+import { DIAS_SEMANA } from '../../utils/format';
 
 const NuevoConcepto = ({ categorias, grupos, onCrear }) => {
   const [nombre, setNombre] = useState('');
@@ -10,12 +11,13 @@ const NuevoConcepto = ({ categorias, grupos, onCrear }) => {
   const [categoriaId, setCategoriaId] = useState('');
   const [grupoId, setGrupoId] = useState('');
   const [frecuencia, setFrecuencia] = useState('mensual');
+  const [diaSemana, setDiaSemana] = useState(1);
 
   const submit = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) return;
-    await onCrear({ nombre, tipo, categoriaId, grupoId, frecuencia });
-    setNombre(''); setTipo('gasto'); setCategoriaId(''); setGrupoId(''); setFrecuencia('mensual');
+    await onCrear({ nombre, tipo, categoriaId, grupoId, frecuencia, diaSemana });
+    setNombre(''); setTipo('gasto'); setCategoriaId(''); setGrupoId(''); setFrecuencia('mensual'); setDiaSemana(1);
   };
 
   return (
@@ -37,6 +39,12 @@ const NuevoConcepto = ({ categorias, grupos, onCrear }) => {
       <select className="cat-select" value={frecuencia} onChange={(e) => setFrecuencia(e.target.value)}>
         {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
       </select>
+      {frecuencia === 'semanal' && (
+        <select className="cat-select" value={diaSemana} title="Día de la semana"
+          onChange={(e) => setDiaSemana(Number(e.target.value))}>
+          {DIAS_SEMANA.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+        </select>
+      )}
       <div className="cf-acciones">
         <button type="submit" className="cf-add" title="Agregar concepto">+</button>
       </div>

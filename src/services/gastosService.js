@@ -98,6 +98,7 @@ export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) =>
   const ref = doc(db, 'hogares', hogarId, 'gastos', id);
   const semanal = Number(datos.montoSemanal) || 0;
   const semanas = Array.isArray(datos.semanas) ? datos.semanas.map(Boolean) : [];
+  const fechas = Array.isArray(datos.fechas) ? datos.fechas : [];
 
   if (semanal <= 0) {
     await deleteDoc(ref).catch(() => {});
@@ -114,6 +115,7 @@ export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) =>
     montoSemanal: semanal,
     monto: semanal * semanas.length,
     semanas,
+    fechas,
     items: [],
     vencimiento: '',
     pagado: semanas.length > 0 && semanas.every(Boolean),

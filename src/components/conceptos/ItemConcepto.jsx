@@ -2,6 +2,7 @@
 // Fila de un concepto: solo lectura por defecto, con botón ✏️ para editar.
 import { useState, useEffect } from 'react';
 import { FRECUENCIAS } from '../../config/frecuencias';
+import { DIAS_SEMANA } from '../../utils/format';
 
 const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, onToggle, onBorrar }) => {
   const [nombre, setNombre] = useState(c.nombre);
@@ -19,6 +20,7 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
   const cat = categorias.find((x) => x.id === c.categoriaId);
   const grp = grupos.find((x) => x.id === c.grupoId);
   const frecLabel = (FRECUENCIAS.find((f) => f.id === frec) || {}).label || frec;
+  const diaLabel = (DIAS_SEMANA.find((d) => d.id === (Number(c.diaSemana) || 1)) || {}).label || '';
 
   // Vista de solo lectura (por defecto).
   if (!editando) {
@@ -30,7 +32,11 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
         </span>
         {cat && <span className="cf-ro-cat">{cat.icon} {cat.nombre}</span>}
         {grp && <span className="cf-ro-grp">📁 {grp.nombre}</span>}
-        <span className="cf-ro-frec">{frecLabel}{frec !== 'mensual' && c.mesAncla ? ` · ${c.mesAncla}` : ''}</span>
+        <span className="cf-ro-frec">
+          {frecLabel}
+          {frec === 'semanal' && diaLabel ? ` · ${diaLabel}` : ''}
+          {frec !== 'mensual' && frec !== 'semanal' && c.mesAncla ? ` · ${c.mesAncla}` : ''}
+        </span>
         <div className="cf-acciones">
           <button className="suelto-borrar" onClick={() => setEditando(true)} title="Editar">✏️</button>
         </div>
@@ -59,7 +65,14 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
       <select className="cat-select" value={frec} onChange={(e) => onGuardar(c, { frecuencia: e.target.value })}>
         {FRECUENCIAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
       </select>
-      {frec !== 'mensual' && (
+      {frec === 'semanal' && (
+        <select className="cat-select" value={Number(c.diaSemana) || 1}
+          title="Día de la semana"
+          onChange={(e) => onGuardar(c, { diaSemana: Number(e.target.value) })}>
+          {DIAS_SEMANA.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+        </select>
+      )}
+      {frec !== 'mensual' && frec !== 'semanal' && (
         <input className="cat-select cf-mes" type="month" defaultValue={c.mesAncla || ''}
           title={frec === 'unica' ? 'Mes' : 'Desde el mes'}
           onChange={(e) => onGuardar(c, { mesAncla: e.target.value })} />

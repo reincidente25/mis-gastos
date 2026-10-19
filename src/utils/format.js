@@ -50,6 +50,32 @@ export const semanasEnMes = (mes) => {
   return Math.ceil((offset + dias) / 7);
 };
 
+/** Días de la semana: 1=Lunes .. 7=Domingo. */
+export const DIAS_SEMANA = [
+  { id: 1, label: 'Lunes',     corto: 'Lun' },
+  { id: 2, label: 'Martes',    corto: 'Mar' },
+  { id: 3, label: 'Miércoles', corto: 'Mié' },
+  { id: 4, label: 'Jueves',    corto: 'Jue' },
+  { id: 5, label: 'Viernes',   corto: 'Vie' },
+  { id: 6, label: 'Sábado',    corto: 'Sáb' },
+  { id: 7, label: 'Domingo',   corto: 'Dom' },
+];
+
+/** Fechas (YYYY-MM-DD) en las que cae un día de semana dado dentro del mes. */
+export const fechasDeSemana = (mes, diaSemana) => {
+  if (!mes) return [];
+  const dia = Number(diaSemana) || 1; // 1=Lun .. 7=Dom
+  const [y, m] = mes.split('-').map(Number);
+  const dias = new Date(y, m, 0).getDate();
+  const out = [];
+  for (let d = 1; d <= dias; d++) {
+    const dow = new Date(y, m - 1, d).getDay(); // 0=Dom .. 6=Sáb
+    const iso = dow === 0 ? 7 : dow;            // 1=Lun .. 7=Dom
+    if (iso === dia) out.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
+  return out;
+};
+
 /**
  * ¿El concepto aplica en el mes dado, según su frecuencia?
  * Sin mesAncla o frecuencia mensual/semanal -> siempre.

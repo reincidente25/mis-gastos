@@ -5,7 +5,7 @@ import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
-import { formatMoneda, mesActual, aplicaEnMes, hoy, semanasEnMes } from '../utils/format';
+import { formatMoneda, mesActual, aplicaEnMes, hoy, semanasEnMes, fechasDeSemana, fechaCorta, DIAS_SEMANA } from '../utils/format';
 import './Gastos.css';
 
 // Estado de un concepto en el mes: pagado / vencido / pendiente / falta cargar.
@@ -80,19 +80,27 @@ const MontoSemanalInput = ({ value, onCommit }) => {
   );
 };
 
-// Fila de un concepto semanal: monto por semana + toggles por semana.
-const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, semanasCount, onGuardarSemanal }) => {
+// Fila de un concepto semanal: monto por semana; cada semana se abre como
+// sub-ítem (con su fecha) para marcarla pagada.
+const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, onGuardarSemanal }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
-  const count = semanasCount;
+  const [abierto, setAbierto] = useState(false);
+
+  const dia = Number(concepto.diaSemana) || 1;
+  const diaCorto = (DIAS_SEMANA.find((d) => d.id === dia) || {}).corto || '';
+  // Fechas de ese día de semana en el mes; si no hay día, caemos a conteo simple.
+  const fechas = fechasDeSemana(mes, dia);
+  const count = fechas.length || semanasEnMes(mes);
+
   const semanas = Array.from({ length: count }, (_, i) => Boolean(gasto?.semanas?.[i]));
   const montoSemanal = gasto?.montoSemanal ?? '';
   const pagadas = semanas.filter(Boolean).length;
-  const estado = !gasto ? 'sincargar' : pagadas === count ? 'pagado' : pagadas > 0 ? 'pendiente' : 'pendiente';
+  const estado = !gasto ? 'sincargar' : pagadas === count ? 'pagado' : 'pendiente';
   const estadoLabel = !gasto ? 'Falta cargar' : pagadas === count ? 'Pagado' : `${pagadas}/${count} semanas`;
 
   const guardar = (nuevoMonto, nuevasSemanas) =>
-    onGuardarSemanal(concepto, { montoSemanal: nuevoMonto, semanas: nuevasSemanas });
+    onGuardarSemanal(concepto, { montoSemanal: nuevoMonto, semanas: nuevasSemanas, fechas });
 
   const toggleSemana = (i) => {
     if (!gasto) return;
@@ -100,39 +108,49 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, seman
   };
 
   return (
-    <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
-      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-      <span className="cr-nombre">
-        <span>
-          {dentroDeGrupo ? nombreCorto(concepto, grupoNombre) : concepto.nombre}
-          <span className="cr-frec">Seman.</span>
-          <span className={`cr-estado est-${estado}`}>{estadoLabel}</span>
+    <>
+      <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+        <span className="cr-nombre">
+          <span>
+            {dentroDeGrupo ? nombreCorto(concepto, grupoNombre) : concepto.nombre}
+            <span className="cr-frec">Seman. · {diaCorto}</span>
+            <span className={`cr-estado est-${estado}`}>{estadoLabel}</span>
+          </span>
+          <span className="cr-cat">
+            {cat.nombre}
+            {gasto ? ` · ${formatMoneda(montoSemanal || 0)}/sem × ${count} = ${formatMoneda(gasto.monto || 0)}` : ` · ${count} semanas`}
+          </span>
         </span>
-        <span className="cr-cat">
-          {cat.nombre}
-          {gasto ? ` · ${formatMoneda(gasto.monto || 0)} en ${count} semanas` : ''}
-        </span>
-      </span>
 
-      {gasto && (
-        <div className="cr-semanas">
-          {semanas.map((pagada, i) => (
-            <button key={i} type="button"
-              className={`cr-semana ${pagada ? 'si' : ''}`}
-              onClick={() => toggleSemana(i)}
-              title={pagada ? `Semana ${i + 1} pagada` : `Marcar semana ${i + 1}`}>
-              S{i + 1}
-            </button>
-          ))}
+        <div className="cr-semanal-box">
+          <MontoSemanalInput value={montoSemanal}
+            onCommit={(val) => guardar(val, gasto ? semanas : Array(count).fill(false))} />
+          <span className="cr-semanal-por">/sem</span>
+        </div>
+
+        <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)} title="Ver semanas">
+          {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+        </button>
+      </div>
+
+      {abierto && (
+        <div className="semanas-detalle">
+          {!gasto ? (
+            <p className="semanas-aviso">Cargá un monto por semana para habilitar el pago semana a semana.</p>
+          ) : (
+            semanas.map((pagada, i) => (
+              <label key={i} className={`semana-item ${pagada ? 'si' : ''}`}>
+                <input type="checkbox" checked={pagada} onChange={() => toggleSemana(i)} />
+                <span className="semana-nombre">Semana {i + 1}</span>
+                <span className="semana-fecha">{fechas[i] ? `${diaCorto} ${fechaCorta(fechas[i])}` : ''}</span>
+                <span className="semana-monto">{formatMoneda(montoSemanal || 0)}</span>
+              </label>
+            ))
+          )}
         </div>
       )}
-
-      <div className="cr-semanal-box">
-        <MontoSemanalInput value={montoSemanal}
-          onCommit={(val) => guardar(val, gasto ? semanas : Array(count).fill(false))} />
-        <span className="cr-semanal-por">/sem</span>
-      </div>
-    </div>
+    </>
   );
 };
 
@@ -294,7 +312,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuar
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, semanasCount, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -308,7 +326,7 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, semanasCount, onGuardarD
       </button>
       {abierto && items.map((c) => (
         <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
-          gasto={porConcepto[c.id]} semanasCount={semanasCount}
+          gasto={porConcepto[c.id]} mes={mes}
           onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
           onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
       ))}
@@ -317,20 +335,20 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, semanasCount, onGuardarD
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, semanasCount, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, mes, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
       return grupoNombre ? (
         <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
-          porConcepto={porConcepto} semanasCount={semanasCount}
+          porConcepto={porConcepto} mes={mes}
           onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
           onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
           señal={señal} abrirTodos={abrirTodos} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
-            gasto={porConcepto[c.id]} semanasCount={semanasCount}
+            gasto={porConcepto[c.id]} mes={mes}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
             onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
         ))
@@ -357,7 +375,6 @@ const Gastos = () => {
     setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
-  const semanasCount = semanasEnMes(mes);
 
   // Mostrar los conceptos que aplican al mes (según frecuencia) o que ya
   // tengan un importe cargado. Con "ver todos", se muestran todos.
@@ -448,7 +465,7 @@ const Gastos = () => {
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    semanasCount={semanasCount}
+                    mes={mes}
                     onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                     señal={expand.n} abrirTodos={expand.abrir} />
                 )}
@@ -463,7 +480,7 @@ const Gastos = () => {
                       </span></span>
                     </h2>
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      semanasCount={semanasCount}
+                      mes={mes}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   </section>
@@ -483,7 +500,7 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      semanasCount={semanasCount}
+                      mes={mes}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   )}
