@@ -122,6 +122,12 @@ const Conceptos = () => {
           <div className="pg-centro"><div className="spinner" /></div>
         ) : (
           <>
+            {/* Alta de concepto: tarjeta propia, separada de la lista */}
+            <section className="card">
+              <h2 className="card-titulo"><span>➕ Nuevo concepto</span></h2>
+              <NuevoConcepto categorias={categorias} grupos={grupos} onCrear={agregar} />
+            </section>
+
             <section className="card">
               <h2 className="card-titulo">
                 <span>Conceptos <span className="card-sub">{activos.length}</span></span>
@@ -133,9 +139,6 @@ const Conceptos = () => {
                   {conceptos.length > 0 && <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>}
                 </div>
               </h2>
-
-              {/* Fila para agregar un concepto nuevo (arriba de todo) */}
-              <NuevoConcepto categorias={categorias} grupos={grupos} onCrear={agregar} />
 
               {activos.length === 0 && q.trim() && (
                 <p className="pg-vacio-inline">Sin conceptos que coincidan con “{q.trim()}”.</p>
