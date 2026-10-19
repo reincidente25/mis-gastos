@@ -1,16 +1,16 @@
 /* src/pages/Tabla.css */
-.tabla-acciones { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.tabla-acciones { display: flex; align-items: center; gap: 14px; }
 .tablas-wrap { display: flex; flex-direction: column; gap: 22px; }
-.tabla-scroll { overflow-x: auto; }
 
 .tabla-excel {
-  width: 100%; border-collapse: collapse;
+  width: 100%; max-width: 760px; border-collapse: collapse;
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm);
   font-size: 13px;
 }
+.tabla-excel.comparativa { max-width: 920px; }
 .tabla-excel th, .tabla-excel td {
-  border: 1px solid var(--color-border); padding: 5px 10px; text-align: left;
+  border: 1px solid var(--color-border); padding: 6px 12px; text-align: left;
 }
 .tabla-excel .th-titulo {
   background: var(--color-primary); color: #fff; text-align: center;
@@ -20,67 +20,81 @@
   background: var(--color-primary-soft); color: var(--color-primary);
   font-size: 12px; font-weight: 700;
 }
+.th-imp, .td-imp { text-align: right; white-space: nowrap; width: 150px; }
+.comparativa .th-imp, .comparativa .td-imp { width: 130px; }
 
-.td-concepto { color: var(--color-text); min-width: 160px; }
+.td-concepto { color: var(--color-text); }
 /* Grupo como etiqueta en la misma línea del concepto */
 .td-grupo {
   margin-left: 8px; font-size: 10px; font-weight: 600; color: var(--color-muted);
   background: var(--color-surface-2); border: 1px solid var(--color-border);
   border-radius: 5px; padding: 1px 6px; white-space: nowrap;
 }
+/* Filas más compactas en la comparativa (menos scroll) */
+.comparativa th, .comparativa td { padding: 3px 10px; }
+.td-indent { display: inline-block; width: 16px; }
+.td-items { color: var(--color-muted); font-size: 11px; margin-left: 4px; }
 
-/* Celdas de mes: importe arriba, variación abajo */
-.th-mes, .td-mes { text-align: right; white-space: nowrap; }
-.td-mes { vertical-align: top; }
-.celda-monto { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
-.celda-monto.vacio { color: var(--color-muted); font-weight: 500; }
-.celda-var { display: block; font-size: 11px; font-weight: 700; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.tb-imp { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tb-imp.vacio { color: var(--color-muted); font-weight: 500; }
 
-/* Colores de variación */
-.var-sube  { color: var(--color-danger); }   /* gasto subió */
-.var-baja  { color: var(--color-success); }   /* gasto bajó */
-.var-nuevo { color: var(--color-primary); }
-.var-nula  { color: var(--color-muted); }
+/* Concepto sin importe en rojo, como la planilla */
+.fila-vacia .td-concepto { color: var(--color-danger); }
+
+/* Fila de grupo (subtotal) */
+.fila-grupo td { background: var(--color-surface-2); font-weight: 700; }
+.fila-grupo .td-imp { color: var(--color-primary); }
 
 /* Total */
 .tabla-excel tfoot .fila-total td {
-  background: var(--color-primary-soft); font-weight: 800; font-size: 13px;
+  background: var(--color-primary-soft); font-weight: 800; font-size: 14px;
   color: var(--color-primary); border-top: 2px solid var(--color-primary);
 }
-.fila-total .celda-monto { color: var(--color-primary); }
+.fila-total .td-imp { font-variant-numeric: tabular-nums; }
+
+.td-imp { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 560px) {
+  .tabla-excel { max-width: 100%; font-size: 12px; }
+  .th-imp, .td-imp { width: 110px; }
+}
 
 /* Columna del mes actual destacada (más vistosa) */
 .th-actual {
   background: var(--color-primary) !important; color: #fff !important;
-  border-left: 2px solid var(--color-primary) !important;
+  font-size: 13px !important; border-left: 2px solid var(--color-primary) !important;
   border-right: 2px solid var(--color-primary) !important;
 }
 .td-actual {
-  background: var(--color-primary-soft);
-  border-left: 2px solid var(--color-primary); border-right: 2px solid var(--color-primary);
+  background: var(--color-primary-soft); font-weight: 800; color: var(--color-primary);
+  font-size: 14px; border-left: 2px solid var(--color-primary); border-right: 2px solid var(--color-primary);
 }
-.td-actual .celda-monto { color: var(--color-primary); font-weight: 800; font-size: 14px; }
-.td-actual .celda-monto.vacio { color: #a5b4fc; }
-.fila-total .td-actual { background: var(--color-primary); border-bottom: 2px solid var(--color-primary); }
-.fila-total .td-actual .celda-monto { color: #fff; }
-.fila-total .td-actual .celda-var { color: #e0e7ff; }
+.td-actual .tb-imp { color: var(--color-primary); }
+.td-actual .tb-imp.vacio { color: #a5b4fc; }
+.fila-total .td-actual { background: var(--color-primary); color: #fff; }
+.fila-total .td-actual { border-bottom: 2px solid var(--color-primary); }
 
-/* Fila teñida según la variación del mes actual */
-.serie .fila-sube td { background: #fef2f2; }
-.serie .fila-baja td { background: #f0fdf4; }
-.serie .fila-sube .td-actual,
-.serie .fila-baja .td-actual { background: var(--color-primary-soft); }
-
-/* Selector de meses atrás */
-.meses-atras { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-muted); font-weight: 500; }
-.meses-atras select {
-  padding: 6px 8px; border: 1px solid var(--color-border); border-radius: 7px;
-  background: var(--color-surface); color: var(--color-text); font-size: 13px; outline: none;
+/* Columna de variación */
+.th-var, .td-var {
+  text-align: center; white-space: nowrap; width: 84px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
+.var-sube  { color: var(--color-danger); }   /* gasto subió */
+.var-baja  { color: var(--color-success); }   /* gasto bajó */
+.var-nuevo { color: var(--color-primary); font-weight: 700; }
+.var-nula  { color: var(--color-muted); }
+
+/* Fila teñida según la variación anterior→actual */
+.comparativa .fila-sube td { background: #fef2f2; }
+.comparativa .fila-baja td { background: #f0fdf4; }
+/* El mes actual conserva su realce por encima del tono de la fila */
+.comparativa .fila-sube .td-actual,
+.comparativa .fila-baja .td-actual { background: var(--color-primary-soft); }
 
 .tabla-nota { font-size: 12px; color: var(--color-muted); }
 
 @media (max-width: 760px) {
+  .comparativa .th-imp, .comparativa .td-imp { width: auto; }
   .tabla-excel { font-size: 12px; }
-  .tabla-excel th, .tabla-excel td { padding: 4px 7px; }
+  .tabla-excel th, .tabla-excel td { padding: 5px 7px; }
 }
