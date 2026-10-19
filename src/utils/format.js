@@ -15,6 +15,14 @@ export const mesActual = () => new Date().toISOString().slice(0, 7);
 /** Fecha de hoy en formato YYYY-MM-DD. */
 export const hoy = () => new Date().toISOString().slice(0, 10);
 
+/** Mes vecino a YYYY-MM, desplazado `delta` meses (±). */
+export const mesVecino = (mes, delta) => {
+  if (!mes) return mes;
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
 /** Convierte "2026-10" en "Octubre 2026". */
 export const mesLegible = (mes) => {
   if (!mes) return '';
@@ -24,6 +32,14 @@ export const mesLegible = (mes) => {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ];
   return `${nombres[Number(m) - 1]} ${anio}`;
+};
+
+/** Convierte "2026-10" en "Oct '26". */
+export const mesCorto = (mes) => {
+  if (!mes) return '';
+  const [anio, m] = mes.split('-');
+  const nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return `${nombres[Number(m) - 1]} '${anio.slice(2)}`;
 };
 
 /** Formatea YYYY-MM-DD como "Lunes 19 de Octubre". */

@@ -1,18 +1,25 @@
-// src/pages/Tabla.jsx — vista compacta "estilo Excel" del mes.
+// src/pages/Tabla.jsx — comparación de 3 meses (anterior · actual · próximo)
+// con % de variación por concepto.
 import { useState } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
-import { formatMoneda, mesActual, mesLegible, aplicaEnMes, fechaCorta, hoy } from '../utils/format';
+import { formatMoneda, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes } from '../utils/format';
 import './Tabla.css';
 
-// Estado de pago de un gasto/ingreso.
-const estadoDe = (gasto, esIngreso) => {
-  if (!gasto) return { txt: '—', cls: 'est-sin' };
-  if (gasto.pagado) return { txt: esIngreso ? 'Cobrado' : 'Pagado', cls: 'est-ok' };
-  if (gasto.vencimiento && gasto.vencimiento < hoy()) return { txt: 'Vencido', cls: 'est-mal' };
-  return { txt: esIngreso ? 'A cobrar' : 'Pendiente', cls: 'est-pend' };
+// Variación porcentual de `curr` respecto de `prev`.
+const variacion = (prev, curr) => {
+  if (!prev && !curr) return { txt: '—', cls: 'var-nula' };
+  if (!prev && curr) return { txt: 'nuevo', cls: 'var-nuevo' };
+  if (prev && !curr) return { txt: '−100%', cls: 'var-baja' };
+  const pct = ((curr - prev) / prev) * 100;
+  if (Math.abs(pct) < 0.5) return { txt: '=', cls: 'var-nula' };
+  const signo = pct > 0 ? '▲' : '▼';
+  return {
+    txt: `${signo} ${Math.abs(pct) >= 100 ? Math.round(Math.abs(pct)) : Math.abs(pct).toFixed(0)}%`,
+    cls: pct > 0 ? 'var-sube' : 'var-baja',
+  };
 };
 
 // Agrupa por grupoId preservando orden; grupo '' al final.
@@ -26,81 +33,100 @@ const agrupar = (conceptos) => {
   return orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0)).map((k) => ({ grupoId: k, items: mapa[k] }));
 };
 
-const Importe = ({ monto }) => (
-  monto > 0
-    ? <span className="tb-imp">{formatMoneda(monto)}</span>
-    : <span className="tb-imp vacio">$ -</span>
+const Monto = ({ v }) => (
+  v > 0 ? <span className="tb-imp">{formatMoneda(v)}</span> : <span className="tb-imp vacio">$ -</span>
 );
 
 const Tabla = () => {
   const [mes, setMes] = useState(mesActual());
-  const [verTodos, setVerTodos] = useState(false);
-  const { conceptos, porConcepto, loading } = useGastosMes(mes);
+  const mesPrev = mesVecino(mes, -1);
+  const mesNext = mesVecino(mes, 1);
+
+  const prev = useGastosMes(mesPrev);
+  const curr = useGastosMes(mes);
+  const next = useGastosMes(mesNext);
   const { getGrp } = useEstructura();
 
-  const visibles = verTodos
-    ? conceptos
-    : conceptos.filter((c) => aplicaEnMes(c, mes) || porConcepto[c.id]);
+  const loading = curr.loading || prev.loading || next.loading;
+  const conceptos = curr.conceptos;
 
+  const mA = (c) => Number(prev.porConcepto[c.id]?.monto) || 0;
+  const mB = (c) => Number(curr.porConcepto[c.id]?.monto) || 0;
+  const mC = (c) => Number(next.porConcepto[c.id]?.monto) || 0;
+
+  // Visibles: conceptos que aplican o tienen gasto en alguno de los 3 meses.
+  const aplicaAlguno = (c) =>
+    aplicaEnMes(c, mesPrev) || aplicaEnMes(c, mes) || aplicaEnMes(c, mesNext) ||
+    mA(c) || mB(c) || mC(c);
+
+  const visibles = conceptos.filter(aplicaAlguno);
   const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
   const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
 
-  const montoDe = (c) => Number(porConcepto[c.id]?.monto) || 0;
-  const sumar = (arr) => arr.reduce((a, c) => a + montoDe(c), 0);
+  const sumar = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
 
-  const totalGastos = sumar(gastoCs);
-  const totalIngresos = ingresoCs.reduce((a, c) => a + (porConcepto[c.id]?.pagado ? montoDe(c) : 0), 0);
+  const Seccion = ({ titulo, lista }) => {
+    const grupos = agrupar(lista);
+    const totA = sumar(lista, mA), totB = sumar(lista, mB), totC = sumar(lista, mC);
+    const vTot = variacion(totA, totB);
+    return (
+      <table className="tabla-excel comparativa">
+        <thead>
+          <tr><th className="th-titulo" colSpan={5}>{titulo}</th></tr>
+          <tr>
+            <th>Concepto</th>
+            <th className="th-imp">{mesCorto(mesPrev)}</th>
+            <th className="th-imp th-actual">{mesCorto(mes)}</th>
+            <th className="th-var">Var.</th>
+            <th className="th-imp">{mesCorto(mesNext)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {grupos.map((g) => (
+            <GrupoFilas key={g.grupoId || '__sin'} g={g} />
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="fila-total">
+            <td>Total</td>
+            <td className="td-imp">{formatMoneda(totA)}</td>
+            <td className="td-imp td-actual">{formatMoneda(totB)}</td>
+            <td className={`td-var ${vTot.cls}`}>{vTot.txt}</td>
+            <td className="td-imp">{formatMoneda(totC)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    );
+  };
 
-  const Seccion = ({ titulo, grupos, total, esIngreso }) => (
-    <table className="tabla-excel">
-      <thead>
-        <tr><th className="th-titulo" colSpan={4}>{titulo}</th></tr>
-        <tr>
-          <th>Concepto</th>
-          <th className="th-vence">Vence</th>
-          <th className="th-estado">Estado</th>
-          <th className="th-imp">Importe</th>
-        </tr>
-      </thead>
-      <tbody>
-        {grupos.map((g) => (
-          <GrupoFilas key={g.grupoId || '__sin'} g={g} esIngreso={esIngreso} />
-        ))}
-      </tbody>
-      <tfoot>
-        <tr className="fila-total">
-          <td colSpan={3}>Total {titulo.split(' ')[0]}</td>
-          <td className="td-imp">{formatMoneda(total)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  );
-
-  const GrupoFilas = ({ g, esIngreso }) => {
+  const GrupoFilas = ({ g }) => {
     const nombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : null;
-    const sub = sumar(g.items);
+    const sA = sumar(g.items, mA), sB = sumar(g.items, mB), sC = sumar(g.items, mC);
+    const vG = variacion(sA, sB);
     return (
       <>
         {nombre && (
           <tr className="fila-grupo">
-            <td colSpan={3}>{nombre}</td>
-            <td className="td-imp">{formatMoneda(sub)}</td>
+            <td>{nombre}</td>
+            <td className="td-imp">{formatMoneda(sA)}</td>
+            <td className="td-imp td-actual">{formatMoneda(sB)}</td>
+            <td className={`td-var ${vG.cls}`}>{vG.txt}</td>
+            <td className="td-imp">{formatMoneda(sC)}</td>
           </tr>
         )}
         {g.items.map((c) => {
-          const m = montoDe(c);
-          const gasto = porConcepto[c.id];
-          const est = estadoDe(gasto, esIngreso);
+          const a = mA(c), b = mB(c), cc = mC(c);
+          const v = variacion(a, b);
           return (
-            <tr key={c.id} className={m > 0 ? '' : 'fila-vacia'}>
+            <tr key={c.id} className={b > 0 ? '' : 'fila-vacia'}>
               <td className="td-concepto">
                 {nombre ? <span className="td-indent" /> : null}
                 {c.nombre}
-                {gasto?.items?.length ? <span className="td-items">· {gasto.items.length}</span> : null}
               </td>
-              <td className="td-vence">{!esIngreso && gasto?.vencimiento ? fechaCorta(gasto.vencimiento) : '—'}</td>
-              <td className="td-estado"><span className={`est-chip ${est.cls}`}>{est.txt}</span></td>
-              <td className="td-imp"><Importe monto={m} /></td>
+              <td className="td-imp"><Monto v={a} /></td>
+              <td className="td-imp td-actual"><Monto v={b} /></td>
+              <td className={`td-var ${v.cls}`}>{v.txt}</td>
+              <td className="td-imp"><Monto v={cc} /></td>
             </tr>
           );
         })}
@@ -113,16 +139,10 @@ const Tabla = () => {
       <div className="gastos-page ancho">
         <header className="pg-header">
           <div>
-            <h1>📋 Tabla</h1>
-            <p className="pg-sub">Vista compacta del mes — {mesLegible(mes)}</p>
+            <h1>📋 Comparativa</h1>
+            <p className="pg-sub">{mesLegible(mesPrev)} · {mesLegible(mes)} · {mesLegible(mesNext)}</p>
           </div>
-          <div className="tabla-acciones">
-            <label className="ver-todos">
-              <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
-              Ver todos
-            </label>
-            <MesSelector mes={mes} onChange={setMes} />
-          </div>
+          <MesSelector mes={mes} onChange={setMes} />
         </header>
 
         {loading ? (
@@ -131,10 +151,9 @@ const Tabla = () => {
           <section className="card"><p className="pg-vacio-inline">No hay conceptos cargados.</p></section>
         ) : (
           <div className="tablas-wrap">
-            <Seccion titulo={`GASTOS ${mesLegible(mes).toUpperCase()}`} grupos={agrupar(gastoCs)} total={totalGastos} />
-            {ingresoCs.length > 0 && (
-              <Seccion titulo={`INGRESOS ${mesLegible(mes).toUpperCase()}`} grupos={agrupar(ingresoCs)} total={totalIngresos} esIngreso />
-            )}
+            <Seccion titulo="GASTOS" lista={gastoCs} />
+            {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} />}
+            <p className="tabla-nota">La variación compara {mesCorto(mes)} contra {mesCorto(mesPrev)}.</p>
           </div>
         )}
       </div>
