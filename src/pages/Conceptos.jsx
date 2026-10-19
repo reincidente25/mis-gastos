@@ -14,7 +14,10 @@ import './Estructura.css';
 
 const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, onToggle, onBorrar }) => {
   const [nombre, setNombre] = useState(c.nombre);
+  const [editando, setEditando] = useState(false);
   const frec = c.frecuencia || 'mensual';
+
+  useEffect(() => { setNombre(c.nombre); }, [c.nombre]);
 
   const commitNombre = () => {
     const limpio = nombre.trim();
@@ -22,6 +25,29 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
     onGuardar(c, { nombre: limpio });
   };
 
+  const cat = categorias.find((x) => x.id === c.categoriaId);
+  const grp = grupos.find((x) => x.id === c.grupoId);
+  const frecLabel = (FRECUENCIAS.find((f) => f.id === frec) || {}).label || frec;
+
+  // Vista de solo lectura (por defecto).
+  if (!editando) {
+    return (
+      <div id={`concepto-${c.id}`} className={`concepto-fila lectura ${archivado ? 'archivado' : ''} ${resaltado ? 'resaltado' : ''}`}>
+        <span className="cf-ro-nombre">{c.nombre}</span>
+        <span className={`cf-ro-tipo ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}>
+          {c.tipo === 'ingreso' ? '💰 Ingreso' : '💸 Gasto'}
+        </span>
+        {cat && <span className="cf-ro-cat">{cat.icon} {cat.nombre}</span>}
+        {grp && <span className="cf-ro-grp">📁 {grp.nombre}</span>}
+        <span className="cf-ro-frec">{frecLabel}{frec !== 'mensual' && c.mesAncla ? ` · ${c.mesAncla}` : ''}</span>
+        <div className="cf-acciones">
+          <button className="suelto-borrar" onClick={() => setEditando(true)} title="Editar">✏️</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Vista de edición.
   return (
     <div id={`concepto-${c.id}`} className={`concepto-fila ${archivado ? 'archivado' : ''} ${resaltado ? 'resaltado' : ''}`}>
       <input className="cf-nombre" value={nombre} maxLength={60}
@@ -52,6 +78,7 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
           {archivado ? '↩️' : '📥'}
         </button>
         <button className="suelto-borrar" onClick={() => onBorrar(c)} title="Borrar">🗑️</button>
+        <button className="suelto-borrar" onClick={() => { commitNombre(); setEditando(false); }} title="Listo">✓</button>
       </div>
     </div>
   );
@@ -69,6 +96,7 @@ const Conceptos = () => {
   const [frecuencia, setFrecuencia] = useState('mensual');
   const [tipo, setTipo] = useState('gasto');
   const [vista, setVista] = useState('grupo');
+  const [q, setQ] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const destacado = searchParams.get('c');
 
@@ -117,8 +145,21 @@ const Conceptos = () => {
     setConceptos([]);
   };
 
-  const activos = conceptos.filter((c) => c.activo);
-  const archivados = conceptos.filter((c) => !c.activo);
+  // Filtro por nombre, grupo o categoría.
+  const coincide = (c) => {
+    const t = q.trim().toLowerCase();
+    if (!t) return true;
+    const cat = categorias.find((x) => x.id === c.categoriaId)?.nombre || '';
+    const grp = getGrp(c.grupoId)?.nombre || '';
+    return (
+      c.nombre.toLowerCase().includes(t) ||
+      cat.toLowerCase().includes(t) ||
+      grp.toLowerCase().includes(t)
+    );
+  };
+
+  const activos = conceptos.filter((c) => c.activo && coincide(c));
+  const archivados = conceptos.filter((c) => !c.activo && coincide(c));
 
   const grid = (arr, arch) => (
     <div className="filas-lista">
@@ -149,6 +190,11 @@ const Conceptos = () => {
             <h1>📄 Conceptos</h1>
             <p className="pg-sub">Cada ítem que cargás por mes (ej: Edesur Dolores)</p>
           </div>
+          <div className="cf-buscador">
+            <input type="search" placeholder="🔍 Buscar por nombre, grupo o categoría…"
+              value={q} onChange={(e) => setQ(e.target.value)} />
+            {q && <button className="cf-buscador-x" onClick={() => setQ('')} title="Limpiar">✕</button>}
+          </div>
         </header>
 
         {loading ? (
@@ -166,6 +212,10 @@ const Conceptos = () => {
                   {conceptos.length > 0 && <button className="btn-borrar-todos" onClick={borrarTodos}>Borrar todos</button>}
                 </div>
               </h2>
+
+              {activos.length === 0 && q.trim() && (
+                <p className="pg-vacio-inline">Sin conceptos que coincidan con “{q.trim()}”.</p>
+              )}
 
               {activos.length > 0 && (
                 vista === 'lista' ? grid(activos, false) : (

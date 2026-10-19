@@ -139,6 +139,42 @@
   .ga-cat { display: none; }
 }
 
+/* Fila de concepto en solo lectura */
+.concepto-fila.lectura { gap: 10px; }
+.cf-ro-nombre { flex: 1 1 200px; min-width: 140px; font-size: 14px; font-weight: 600; color: var(--color-text); }
+.cf-ro-tipo {
+  flex: 0 0 auto; font-size: 11px; font-weight: 600; color: var(--color-muted);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 6px; padding: 2px 8px; white-space: nowrap;
+}
+.cf-ro-tipo.es-ingreso { color: var(--color-success); border-color: #a7f3d0; background: #ecfdf5; }
+.cf-ro-cat, .cf-ro-grp {
+  flex: 0 0 auto; font-size: 12px; color: var(--color-muted); white-space: nowrap;
+}
+.cf-ro-frec {
+  flex: 0 0 auto; font-size: 11px; font-weight: 600; color: var(--color-primary);
+  background: var(--color-primary-soft); border-radius: 6px; padding: 2px 8px; white-space: nowrap;
+}
+
+/* Buscador de conceptos */
+.cf-buscador { display: flex; align-items: center; gap: 6px; }
+.cf-buscador input {
+  width: 320px; max-width: 60vw; padding: 9px 12px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 8px; color: var(--color-text); font-size: 13px; outline: none;
+}
+.cf-buscador input:focus { border-color: var(--color-primary); }
+.cf-buscador-x {
+  background: none; border: 1px solid var(--color-border); border-radius: 7px;
+  width: 30px; height: 34px; cursor: pointer; color: var(--color-muted); font-size: 13px;
+}
+.cf-buscador-x:hover { background: var(--color-border); color: var(--color-text); }
+
+@media (max-width: 640px) {
+  .cf-buscador input { width: 100%; max-width: none; }
+  .cf-buscador { width: 100%; }
+}
+
 /* Fila para agregar un concepto nuevo */
 .fila-nueva { border-style: dashed; background: var(--color-surface); margin-top: 8px; }
 .cf-add {
