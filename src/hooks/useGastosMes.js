@@ -8,6 +8,7 @@ import {
   listarGastosMes,
   getGastoConcepto,
   guardarGastoRecurrente,
+  guardarGastoSemanal,
   setMetaGasto,
   crearGastoSuelto,
   eliminarGasto,
@@ -109,6 +110,15 @@ export const useGastosMes = (mes) => {
   const setImporte = (concepto, monto) => guardar(concepto, { monto });
   const setDetalle = (concepto, items) => guardar(concepto, { items });
 
+  // Guarda un concepto semanal: monto por semana + estado de pago por semana.
+  const setSemanal = async (concepto, datos) => {
+    const res = await guardarGastoSemanal(hogarId, mes, concepto, datos, user.uid);
+    setGastos((prev) => {
+      const sinEste = prev.filter((g) => g.conceptoId !== concepto.id);
+      return res ? [...sinEste, res] : sinEste;
+    });
+  };
+
   // Actualiza vencimiento/pagado sin tocar el importe.
   const setMeta = async (concepto, meta) => {
     const actual = gastos.find((g) => g.conceptoId === concepto.id);
@@ -143,6 +153,6 @@ export const useGastosMes = (mes) => {
   return {
     conceptos, porConcepto, sueltos, gastos,
     loading, error, total,
-    setImporte, setDetalle, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
+    setImporte, setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
   };
 };

@@ -41,13 +41,22 @@ export const diffMeses = (a, b) => {
   return (by * 12 + bm) - (ay * 12 + am);
 };
 
+/** Cantidad de semanas (filas de calendario) que toca un mes YYYY-MM. */
+export const semanasEnMes = (mes) => {
+  if (!mes) return 4;
+  const [y, m] = mes.split('-').map(Number);
+  const dias = new Date(y, m, 0).getDate();
+  const offset = (new Date(y, m - 1, 1).getDay() + 6) % 7; // lunes = 0
+  return Math.ceil((offset + dias) / 7);
+};
+
 /**
  * ¿El concepto aplica en el mes dado, según su frecuencia?
- * Sin mesAncla o frecuencia mensual -> siempre.
+ * Sin mesAncla o frecuencia mensual/semanal -> siempre.
  */
 export const aplicaEnMes = (concepto, mes) => {
   const frec = concepto.frecuencia || 'mensual';
-  if (frec === 'mensual') return true;
+  if (frec === 'mensual' || frec === 'semanal') return true;
   const ancla = concepto.mesAncla;
   if (!ancla) return true; // sin ancla, no filtramos
   const diff = diffMeses(ancla, mes);

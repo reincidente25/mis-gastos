@@ -3,6 +3,7 @@
 // (0 = única vez; 1 = mensual).
 
 export const FRECUENCIAS = [
+  { id: 'semanal',       label: 'Semanal',       corto: 'Seman.', meses: 1, semanal: true },
   { id: 'mensual',       label: 'Mensual',       corto: 'Mens.',  meses: 1 },
   { id: 'bimestral',     label: 'Bimestral',     corto: 'Bim.',   meses: 2 },
   { id: 'trimestral',    label: 'Trimestral',    corto: 'Trim.',  meses: 3 },

@@ -426,6 +426,32 @@ button.grupo-head:hover { filter: brightness(0.98); }
 }
 .desglose-pesos { font-size: 12px; font-weight: 700; color: var(--color-primary); white-space: nowrap; }
 
+/* Concepto semanal: monto por semana + toggles por semana */
+.cr-semanas { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; flex-shrink: 0; }
+.cr-semana {
+  min-width: 32px; padding: 5px 8px; border-radius: 7px; cursor: pointer;
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  color: var(--color-muted); font-size: 12px; font-weight: 700;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.cr-semana:hover { border-color: var(--color-success); }
+.cr-semana.si { background: #ecfdf5; border-color: #a7f3d0; color: var(--color-success); }
+
+.cr-semanal-box {
+  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.cr-semanal-input {
+  width: 110px; text-align: right; padding: 7px 10px;
+  background: var(--color-primary-soft); border: 1px solid #c7d2fe; border-radius: 8px;
+  color: var(--color-primary); font-size: 14px; font-weight: 700; outline: none;
+}
+.cr-semanal-input:focus { background: #fff; border-color: var(--color-primary); }
+.cr-semanal-por { font-size: 11px; color: var(--color-muted); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .cr-semanas { order: 3; width: 100%; padding-left: 40px; }
+}
+
 /* Acciones del header de Gastos */
 .pg-header-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .btn-expandir {

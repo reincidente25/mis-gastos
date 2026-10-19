@@ -5,7 +5,7 @@ import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
-import { formatMoneda, mesActual, aplicaEnMes, hoy } from '../utils/format';
+import { formatMoneda, mesActual, aplicaEnMes, hoy, semanasEnMes } from '../utils/format';
 import './Gastos.css';
 
 // Estado de un concepto en el mes: pagado / vencido / pendiente / falta cargar.
@@ -62,6 +62,77 @@ const VenceInput = ({ value, onCommit }) => {
       type="date" min="2000-01-01" max="2100-12-31" value={v}
       onChange={(e) => { setV(e.target.value); onCommit(e.target.value); }}
     />
+  );
+};
+
+// Input del monto semanal (estado local para no cortar el tipeo).
+const MontoSemanalInput = ({ value, onCommit }) => {
+  const [v, setV] = useState(value ?? '');
+  useEffect(() => { setV(value ?? ''); }, [value]);
+  return (
+    <input
+      className="cr-semanal-input" type="number" min="0" step="0.01" placeholder="$/sem"
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => onCommit(v)}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+};
+
+// Fila de un concepto semanal: monto por semana + toggles por semana.
+const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, semanasCount, onGuardarSemanal }) => {
+  const { getCat } = useEstructura();
+  const cat = getCat(concepto.categoriaId);
+  const count = semanasCount;
+  const semanas = Array.from({ length: count }, (_, i) => Boolean(gasto?.semanas?.[i]));
+  const montoSemanal = gasto?.montoSemanal ?? '';
+  const pagadas = semanas.filter(Boolean).length;
+  const estado = !gasto ? 'sincargar' : pagadas === count ? 'pagado' : pagadas > 0 ? 'pendiente' : 'pendiente';
+  const estadoLabel = !gasto ? 'Falta cargar' : pagadas === count ? 'Pagado' : `${pagadas}/${count} semanas`;
+
+  const guardar = (nuevoMonto, nuevasSemanas) =>
+    onGuardarSemanal(concepto, { montoSemanal: nuevoMonto, semanas: nuevasSemanas });
+
+  const toggleSemana = (i) => {
+    if (!gasto) return;
+    guardar(montoSemanal, semanas.map((b, idx) => (idx === i ? !b : b)));
+  };
+
+  return (
+    <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+      <span className="cr-nombre">
+        <span>
+          {dentroDeGrupo ? nombreCorto(concepto, grupoNombre) : concepto.nombre}
+          <span className="cr-frec">Seman.</span>
+          <span className={`cr-estado est-${estado}`}>{estadoLabel}</span>
+        </span>
+        <span className="cr-cat">
+          {cat.nombre}
+          {gasto ? ` · ${formatMoneda(gasto.monto || 0)} en ${count} semanas` : ''}
+        </span>
+      </span>
+
+      {gasto && (
+        <div className="cr-semanas">
+          {semanas.map((pagada, i) => (
+            <button key={i} type="button"
+              className={`cr-semana ${pagada ? 'si' : ''}`}
+              onClick={() => toggleSemana(i)}
+              title={pagada ? `Semana ${i + 1} pagada` : `Marcar semana ${i + 1}`}>
+              S{i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="cr-semanal-box">
+        <MontoSemanalInput value={montoSemanal}
+          onCommit={(val) => guardar(val, gasto ? semanas : Array(count).fill(false))} />
+        <span className="cr-semanal-por">/sem</span>
+      </div>
+    </div>
   );
 };
 
@@ -138,7 +209,14 @@ const DesgloseEditor = ({ items, conMoneda, onChange }) => {
   );
 };
 
-const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
+// Dispatcher: según la frecuencia, fila semanal o normal (sin hooks propios,
+// para no romper las reglas de hooks al alternar de tipo).
+const ConceptoRow = (props) =>
+  props.concepto.frecuencia === 'semanal'
+    ? <ConceptoRowSemanal {...props} />
+    : <ConceptoRowNormal {...props} />;
+
+const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
@@ -216,7 +294,7 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta, onCopiar, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, porConcepto, semanasCount, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -230,27 +308,31 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuar
       </button>
       {abierto && items.map((c) => (
         <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
-          gasto={porConcepto[c.id]}
-          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar} />
+          gasto={porConcepto[c.id]} semanasCount={semanasCount}
+          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
+          onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
       ))}
     </div>
   );
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta, onCopiar, señal, abrirTodos }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, semanasCount, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
       return grupoNombre ? (
         <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
-          porConcepto={porConcepto} onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar}
+          porConcepto={porConcepto} semanasCount={semanasCount}
+          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
+          onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
           señal={señal} abrirTodos={abrirTodos} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
-            gasto={porConcepto[c.id]}
-            onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar} />
+            gasto={porConcepto[c.id]} semanasCount={semanasCount}
+            onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
+            onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
         ))
       );
     })}
@@ -272,9 +354,10 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error,
-    setDetalle, setMeta, copiarAnterior, agregarSuelto, borrar,
+    setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
+  const semanasCount = semanasEnMes(mes);
 
   // Mostrar los conceptos que aplican al mes (según frecuencia) o que ya
   // tengan un importe cargado. Con "ver todos", se muestran todos.
@@ -365,7 +448,8 @@ const Gastos = () => {
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior}
+                    semanasCount={semanasCount}
+                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                     señal={expand.n} abrirTodos={expand.abrir} />
                 )}
               </section>
@@ -379,7 +463,8 @@ const Gastos = () => {
                       </span></span>
                     </h2>
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior}
+                      semanasCount={semanasCount}
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   </section>
                 )}
@@ -398,7 +483,8 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior}
+                      semanasCount={semanasCount}
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   )}
                 </section>

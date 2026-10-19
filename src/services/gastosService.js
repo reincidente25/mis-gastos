@@ -87,6 +87,43 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
   return { id, ...payload };
 };
 
+/**
+ * Guarda un concepto semanal para el mes.
+ * datos = { montoSemanal, semanas: [bool...] }.
+ * - monto = montoSemanal × cantidad de semanas (total del mes).
+ * - pagado = todas las semanas marcadas.
+ */
+export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) => {
+  const id = `${mes}__${concepto.id}`;
+  const ref = doc(db, 'hogares', hogarId, 'gastos', id);
+  const semanal = Number(datos.montoSemanal) || 0;
+  const semanas = Array.isArray(datos.semanas) ? datos.semanas.map(Boolean) : [];
+
+  if (semanal <= 0) {
+    await deleteDoc(ref).catch(() => {});
+    return null;
+  }
+
+  const payload = {
+    mes,
+    conceptoId: concepto.id,
+    concepto: concepto.nombre,
+    categoriaId: concepto.categoriaId || '',
+    grupoId: concepto.grupoId || '',
+    esSemanal: true,
+    montoSemanal: semanal,
+    monto: semanal * semanas.length,
+    semanas,
+    items: [],
+    vencimiento: '',
+    pagado: semanas.length > 0 && semanas.every(Boolean),
+    updatedBy: uid,
+    updatedAt: serverTimestamp(),
+  };
+  await setDoc(ref, payload);
+  return { id, ...payload };
+};
+
 /** Actualiza solo vencimiento/pagado de un gasto existente del mes. */
 export const setMetaGasto = async (hogarId, mes, concepto, meta) => {
   const id = `${mes}__${concepto.id}`;
