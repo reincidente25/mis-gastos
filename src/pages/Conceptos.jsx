@@ -213,24 +213,7 @@ const Conceptos = () => {
                 </div>
               </h2>
 
-              {activos.length === 0 && q.trim() && (
-                <p className="pg-vacio-inline">Sin conceptos que coincidan con “{q.trim()}”.</p>
-              )}
-
-              {activos.length > 0 && (
-                vista === 'lista' ? grid(activos, false) : (
-                  <div className="cc-grupos">
-                    {porGrupo().map((g) => (
-                      <div className="cc-grupo" key={g.nombre}>
-                        <div className="cc-grupo-head"><span>{g.nombre}</span><span className="card-sub">{g.items.length}</span></div>
-                        {grid(g.items, false)}
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-
-              {/* Fila para agregar un concepto nuevo */}
+              {/* Fila para agregar un concepto nuevo (arriba de todo) */}
               <form className="concepto-fila fila-nueva" onSubmit={agregar}>
                 <input className="cf-nombre" type="text" placeholder="Nuevo concepto…" value={nombre}
                   onChange={(e) => setNombre(e.target.value)} maxLength={60} />
@@ -253,6 +236,23 @@ const Conceptos = () => {
                   <button type="submit" className="cf-add" title="Agregar concepto">+</button>
                 </div>
               </form>
+
+              {activos.length === 0 && q.trim() && (
+                <p className="pg-vacio-inline">Sin conceptos que coincidan con “{q.trim()}”.</p>
+              )}
+
+              {activos.length > 0 && (
+                vista === 'lista' ? grid(activos, false) : (
+                  <div className="cc-grupos">
+                    {porGrupo().map((g) => (
+                      <div className="cc-grupo" key={g.nombre}>
+                        <div className="cc-grupo-head"><span>{g.nombre}</span><span className="card-sub">{g.items.length}</span></div>
+                        {grid(g.items, false)}
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
             </section>
 
             {archivados.length > 0 && (
