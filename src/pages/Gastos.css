@@ -426,6 +426,15 @@ button.grupo-head:hover { filter: brightness(0.98); }
 }
 .desglose-pesos { font-size: 12px; font-weight: 700; color: var(--color-primary); white-space: nowrap; }
 
+/* Acciones del header de Gastos */
+.pg-header-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-expandir {
+  padding: 8px 14px; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 8px; color: var(--color-primary); font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-expandir:hover { background: var(--color-primary-soft); border-color: #c7d2fe; }
+
 /* Botón copiar del mes anterior */
 .cr-copiar {
   flex-shrink: 0; width: 30px; height: 34px; border-radius: 7px;

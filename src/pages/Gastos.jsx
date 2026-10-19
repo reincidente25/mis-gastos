@@ -216,8 +216,10 @@ const ConceptoRow = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDet
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
+const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuardarMeta, onCopiar, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
+  // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
+  useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
   return (
     <div className="grupo-bloque">
       <button className="grupo-head" onClick={() => setAbierto((a) => !a)}>
@@ -236,13 +238,14 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, onGuardarDetalle, onGuar
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta, onCopiar }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, onGuardarDetalle, onGuardarMeta, onCopiar, señal, abrirTodos }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
       return grupoNombre ? (
         <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
-          porConcepto={porConcepto} onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar} />
+          porConcepto={porConcepto} onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta} onCopiar={onCopiar}
+          señal={señal} abrirTodos={abrirTodos} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
@@ -263,6 +266,8 @@ const sumaPorTipo = (conceptos, porConcepto, cond) =>
 const Gastos = () => {
   const [mes, setMes] = useState(mesActual());
   const [verTodos, setVerTodos] = useState(false);
+  const [expand, setExpand] = useState({ n: 0, abrir: false }); // señal global expandir/colapsar
+  const alternarTodos = () => setExpand((e) => ({ n: e.n + 1, abrir: !e.abrir }));
   const [filtro, setFiltro] = useState('todos'); // todos|pagado|pendiente|vencido|sincargar
   const {
     conceptos, porConcepto, sueltos,
@@ -314,7 +319,12 @@ const Gastos = () => {
             <h1>💸 Gastos e ingresos</h1>
             <p className="pg-sub">Completá el importe de cada concepto del mes</p>
           </div>
-          <MesSelector mes={mes} onChange={setMes} />
+          <div className="pg-header-acciones">
+            <button className="btn-expandir" onClick={alternarTodos}>
+              {expand.abrir ? '▾ Colapsar todos' : '▸ Expandir todos'}
+            </button>
+            <MesSelector mes={mes} onChange={setMes} />
+          </div>
         </header>
 
         <div className="estado-tiles">
@@ -355,7 +365,8 @@ const Gastos = () => {
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior} />
+                    onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior}
+                    señal={expand.n} abrirTodos={expand.abrir} />
                 )}
               </section>
             ) : (
@@ -368,7 +379,8 @@ const Gastos = () => {
                       </span></span>
                     </h2>
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior} />
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior}
+                      señal={expand.n} abrirTodos={expand.abrir} />
                   </section>
                 )}
 
@@ -386,7 +398,8 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior} />
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onCopiar={copiarAnterior}
+                      señal={expand.n} abrirTodos={expand.abrir} />
                   )}
                 </section>
               </>
