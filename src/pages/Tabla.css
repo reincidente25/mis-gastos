@@ -59,10 +59,20 @@
   .th-imp, .td-imp { width: 110px; }
 }
 
-/* Columna del mes actual destacada */
-.th-actual { background: var(--color-primary) !important; color: #fff !important; }
-.td-actual { background: var(--color-primary-soft); font-weight: 700; }
-.fila-grupo .td-actual { color: var(--color-primary); }
+/* Columna del mes actual destacada (más vistosa) */
+.th-actual {
+  background: var(--color-primary) !important; color: #fff !important;
+  font-size: 13px !important; border-left: 2px solid var(--color-primary) !important;
+  border-right: 2px solid var(--color-primary) !important;
+}
+.td-actual {
+  background: var(--color-primary-soft); font-weight: 800; color: var(--color-primary);
+  font-size: 14px; border-left: 2px solid var(--color-primary); border-right: 2px solid var(--color-primary);
+}
+.td-actual .tb-imp { color: var(--color-primary); }
+.td-actual .tb-imp.vacio { color: #a5b4fc; }
+.fila-total .td-actual { background: var(--color-primary); color: #fff; }
+.fila-total .td-actual { border-bottom: 2px solid var(--color-primary); }
 
 /* Columna de variación */
 .th-var, .td-var {

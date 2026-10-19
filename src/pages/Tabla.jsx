@@ -70,14 +70,14 @@ const Tabla = () => {
     // etiqueta en la misma línea del concepto.
     const ordenada = agrupar(lista).flatMap((g) => g.items);
     const totA = sumar(lista, mA), totB = sumar(lista, mB), totC = sumar(lista, mC);
-    const vTot = variacion(totA, totB);
     return (
       <table className="tabla-excel comparativa">
         <thead>
-          <tr><th className="th-titulo" colSpan={5}>{titulo}</th></tr>
+          <tr><th className="th-titulo" colSpan={6}>{titulo}</th></tr>
           <tr>
             <th>Concepto</th>
             <th className="th-imp">{mesCorto(mesPrev)}</th>
+            <th className="th-var">Var.</th>
             <th className="th-imp th-actual">{mesCorto(mes)}</th>
             <th className="th-var">Var.</th>
             <th className="th-imp">{mesCorto(mesNext)}</th>
@@ -86,7 +86,8 @@ const Tabla = () => {
         <tbody>
           {ordenada.map((c) => {
             const a = mA(c), b = mB(c), cc = mC(c);
-            const v = variacion(a, b);
+            const vIzq = variacion(a, b);   // anterior → actual
+            const vDer = variacion(b, cc);  // actual → próximo
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
             return (
               <tr key={c.id} className={b > 0 ? '' : 'fila-vacia'}>
@@ -95,8 +96,9 @@ const Tabla = () => {
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
                 <td className="td-imp"><Monto v={a} /></td>
+                <td className={`td-var ${vIzq.cls}`}>{vIzq.txt}</td>
                 <td className="td-imp td-actual"><Monto v={b} /></td>
-                <td className={`td-var ${v.cls}`}>{v.txt}</td>
+                <td className={`td-var ${vDer.cls}`}>{vDer.txt}</td>
                 <td className="td-imp"><Monto v={cc} /></td>
               </tr>
             );
@@ -106,8 +108,9 @@ const Tabla = () => {
           <tr className="fila-total">
             <td>Total</td>
             <td className="td-imp">{formatMoneda(totA)}</td>
+            <td className={`td-var ${variacion(totA, totB).cls}`}>{variacion(totA, totB).txt}</td>
             <td className="td-imp td-actual">{formatMoneda(totB)}</td>
-            <td className={`td-var ${vTot.cls}`}>{vTot.txt}</td>
+            <td className={`td-var ${variacion(totB, totC).cls}`}>{variacion(totB, totC).txt}</td>
             <td className="td-imp">{formatMoneda(totC)}</td>
           </tr>
         </tfoot>
@@ -134,7 +137,7 @@ const Tabla = () => {
           <div className="tablas-wrap">
             <Seccion titulo="GASTOS" lista={gastoCs} />
             {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} />}
-            <p className="tabla-nota">La variación compara {mesCorto(mes)} contra {mesCorto(mesPrev)}.</p>
+            <p className="tabla-nota">Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
           </div>
         )}
       </div>
