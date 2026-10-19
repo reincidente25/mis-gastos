@@ -26,6 +26,19 @@ export const mesLegible = (mes) => {
   return `${nombres[Number(m) - 1]} ${anio}`;
 };
 
+/** Formatea YYYY-MM-DD como "Lunes 19 de Octubre". */
+export const fechaLarga = (fecha) => {
+  if (!fecha) return '';
+  const [y, m, d] = fecha.split('-').map(Number);
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  ];
+  const dow = new Date(y, m - 1, d).getDay();
+  return `${dias[dow]} ${d} de ${meses[m - 1]}`;
+};
+
 /** Formatea YYYY-MM-DD como DD/MM. */
 export const fechaCorta = (fecha) => {
   if (!fecha) return '';

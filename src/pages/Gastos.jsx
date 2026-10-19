@@ -5,7 +5,7 @@ import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
-import { formatMoneda, mesActual, aplicaEnMes, hoy, semanasEnMes, fechasDeSemana, fechaCorta, DIAS_SEMANA } from '../utils/format';
+import { formatMoneda, mesActual, aplicaEnMes, hoy, semanasEnMes, fechasDeSemana, fechaLarga, DIAS_SEMANA } from '../utils/format';
 import './Gastos.css';
 
 // Estado de un concepto en el mes: pagado / vencido / pendiente / falta cargar.
@@ -143,8 +143,7 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
             semanas.map((pagada, i) => (
               <label key={i} className={`semana-item ${pagada ? 'si' : ''}`}>
                 <input type="checkbox" checked={pagada} onChange={() => toggleSemana(i)} />
-                <span className="semana-nombre">Semana {i + 1}</span>
-                <span className="semana-fecha">{fechas[i] ? `${diaCorto} ${fechaCorta(fechas[i])}` : ''}</span>
+                <span className="semana-nombre">{fechas[i] ? fechaLarga(fechas[i]) : `Semana ${i + 1}`}</span>
                 <span className="semana-monto">{formatMoneda(montoSemanal || 0)}</span>
               </label>
             ))
