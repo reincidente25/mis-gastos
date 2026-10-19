@@ -30,6 +30,7 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
         <span className={`cf-ro-tipo ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}>
           {c.tipo === 'ingreso' ? '💰 Ingreso' : '💸 Gasto'}
         </span>
+        {c.moneda === 'usd' && <span className="cf-ro-usd">US$</span>}
         {cat && <span className="cf-ro-cat">{cat.icon} {cat.nombre}</span>}
         {grp && <span className="cf-ro-grp">📁 {grp.nombre}</span>}
         <span className="cf-ro-frec">
@@ -53,6 +54,11 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
       <select className="cat-select" value={c.tipo || 'gasto'} onChange={(e) => onGuardar(c, { tipo: e.target.value })}>
         <option value="gasto">💸 Gasto</option>
         <option value="ingreso">💰 Ingreso</option>
+      </select>
+      <select className="cat-select" value={c.moneda === 'usd' ? 'usd' : 'ars'} title="Moneda"
+        onChange={(e) => onGuardar(c, { moneda: e.target.value })}>
+        <option value="ars">$ ARS</option>
+        <option value="usd">US$</option>
       </select>
       <select className="cat-select" value={c.categoriaId || ''} onChange={(e) => onGuardar(c, { categoriaId: e.target.value })}>
         <option value="">— Categoría —</option>

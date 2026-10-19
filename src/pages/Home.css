@@ -17,6 +17,17 @@
 .kpi.destacado .kpi-label { color: rgba(255,255,255,0.85); }
 .kpi.destacado.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
 
+/* KPIs en dólares (aparte) */
+.usd-kpis { grid-template-columns: repeat(3, 1fr); }
+.kpi.usd { border-color: #a7f3d0; background: #ecfdf5; }
+.kpi.usd .kpi-label { color: #059669; }
+.kpi.usd .kpi-valor { color: #047857; }
+.kpi.usd.destacado { background: linear-gradient(135deg, #059669, #047857); border: none; color: #fff; }
+.kpi.usd.destacado .kpi-label { color: rgba(255,255,255,0.85); }
+.kpi.usd.destacado .kpi-valor { color: #fff; }
+.kpi.usd.destacado.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
+@media (max-width: 900px) { .usd-kpis { grid-template-columns: 1fr 1fr; } }
+
 /* Grilla principal del dashboard */
 .home-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
 

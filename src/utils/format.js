@@ -9,6 +9,19 @@ export const formatMoneda = (valor) =>
     maximumFractionDigits: 2,
   }).format(Number(valor) || 0);
 
+/** Formatea un número como dólares (US$). */
+export const formatUSD = (valor) =>
+  new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(valor) || 0);
+
+/** Formatea según la moneda del concepto ('usd' | 'ars'). */
+export const formatImporte = (valor, moneda) =>
+  (moneda === 'usd' ? formatUSD(valor) : formatMoneda(valor));
+
 /** Mes actual en formato YYYY-MM. */
 export const mesActual = () => new Date().toISOString().slice(0, 7);
 

@@ -6,7 +6,7 @@ import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useHogar } from '../context/HogarContext';
 import { useEstructura } from '../context/EstructuraContext';
-import { formatMoneda, mesActual, mesLegible } from '../utils/format';
+import { formatMoneda, formatUSD, mesActual, mesLegible } from '../utils/format';
 import './Home.css';
 
 const pct = (parte, total) => (total > 0 ? Math.round((parte / total) * 100) : 0);
@@ -23,12 +23,28 @@ const Home = () => {
     return (g) => (g.conceptoId ? m[g.conceptoId] || 'gasto' : 'gasto');
   }, [conceptos]);
 
+  // Moneda del gasto según su concepto (los sueltos son en pesos).
+  const monedaDe = useMemo(() => {
+    const m = {};
+    conceptos.forEach((c) => { m[c.id] = c.moneda === 'usd' ? 'usd' : 'ars'; });
+    return (g) => (g.conceptoId ? m[g.conceptoId] || 'ars' : 'ars');
+  }, [conceptos]);
+
+  const esUSD = (g) => monedaDe(g) === 'usd';
+  const ars = gastos.filter((g) => !esUSD(g));
+
   // El ingreso impacta solo cuando está cobrado (pagado === true).
-  const totalIngresos = gastos.reduce((a, g) => a + (tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
-  const totalGastos   = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
+  const totalIngresos = ars.reduce((a, g) => a + (tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
+  const totalGastos   = ars.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
+
+  // Totales en dólares (aparte, sin convertir).
+  const usdGastos   = gastos.reduce((a, g) => a + (esUSD(g) && tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
+  const usdIngresos = gastos.reduce((a, g) => a + (esUSD(g) && tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
+  const usdBalance  = usdIngresos - usdGastos;
+  const hayUSD      = gastos.some(esUSD);
   // Pagado: montos de gastos marcados pagos; en los semanales, suma solo las
   // semanas ya pagadas (pago parcial).
-  const pagado = gastos.reduce((a, g) => {
+  const pagado = ars.reduce((a, g) => {
     if (tipoDe(g) === 'ingreso') return a;
     if (g.esSemanal) {
       const montosS = Array.isArray(g.montosSemana) ? g.montosSemana : [];
@@ -41,7 +57,7 @@ const Home = () => {
 
   const porCategoria = useMemo(() => {
     const acc = {};
-    gastos.forEach((g) => {
+    ars.forEach((g) => {
       if (tipoDe(g) === 'ingreso') return;
       const id = g.categoriaId || '';
       acc[id] = (acc[id] || 0) + (Number(g.monto) || 0);
@@ -49,6 +65,7 @@ const Home = () => {
     return Object.entries(acc)
       .map(([id, monto]) => ({ cat: getCat(id), monto }))
       .sort((a, b) => b.monto - a.monto);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gastos, getCat, tipoDe]);
 
   const mayor = porCategoria[0]?.monto || 0;
@@ -87,6 +104,23 @@ const Home = () => {
                 <span className="kpi-valor pend">{formatMoneda(pendiente)}</span>
               </div>
             </div>
+
+            {hayUSD && (
+              <div className="kpi-row usd-kpis">
+                <div className="kpi usd">
+                  <span className="kpi-label">💵 Ingresos US$</span>
+                  <span className="kpi-valor">{formatUSD(usdIngresos)}</span>
+                </div>
+                <div className="kpi usd">
+                  <span className="kpi-label">💵 Gastos US$</span>
+                  <span className="kpi-valor">{formatUSD(usdGastos)}</span>
+                </div>
+                <div className={`kpi usd destacado ${usdBalance < 0 ? 'neg' : ''}`}>
+                  <span className="kpi-label">Balance US$</span>
+                  <span className="kpi-valor">{formatUSD(usdBalance)}</span>
+                </div>
+              </div>
+            )}
 
             <div className="home-grid">
               {/* Gastos por categoría */}

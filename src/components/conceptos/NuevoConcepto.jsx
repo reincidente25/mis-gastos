@@ -12,12 +12,13 @@ const NuevoConcepto = ({ categorias, grupos, onCrear }) => {
   const [grupoId, setGrupoId] = useState('');
   const [frecuencia, setFrecuencia] = useState('mensual');
   const [diaSemana, setDiaSemana] = useState(1);
+  const [moneda, setMoneda] = useState('ars');
 
   const submit = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) return;
-    await onCrear({ nombre, tipo, categoriaId, grupoId, frecuencia, diaSemana });
-    setNombre(''); setTipo('gasto'); setCategoriaId(''); setGrupoId(''); setFrecuencia('mensual'); setDiaSemana(1);
+    await onCrear({ nombre, tipo, categoriaId, grupoId, frecuencia, diaSemana, moneda });
+    setNombre(''); setTipo('gasto'); setCategoriaId(''); setGrupoId(''); setFrecuencia('mensual'); setDiaSemana(1); setMoneda('ars');
   };
 
   return (
@@ -27,6 +28,10 @@ const NuevoConcepto = ({ categorias, grupos, onCrear }) => {
       <select className="cat-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
         <option value="gasto">💸 Gasto</option>
         <option value="ingreso">💰 Ingreso</option>
+      </select>
+      <select className="cat-select" value={moneda} title="Moneda" onChange={(e) => setMoneda(e.target.value)}>
+        <option value="ars">$ ARS</option>
+        <option value="usd">US$</option>
       </select>
       <select className="cat-select" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
         <option value="">— Categoría —</option>

@@ -5,7 +5,7 @@ import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
 import { getFrecuencia } from '../config/frecuencias';
-import { formatMoneda, mesActual, aplicaEnMes, hoy, semanasEnMes, fechasDeSemana, fechaLarga, DIAS_SEMANA } from '../utils/format';
+import { formatMoneda, formatImporte, formatUSD, mesActual, aplicaEnMes, hoy, semanasEnMes, fechasDeSemana, fechaLarga, DIAS_SEMANA } from '../utils/format';
 import './Gastos.css';
 
 // Estado de un concepto en el mes: pagado / vencido / pendiente / falta cargar.
@@ -116,6 +116,7 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
   const montos = Array.from({ length: count }, (_, i) =>
     gasto?.montosSemana?.[i] !== undefined ? Number(gasto.montosSemana[i]) || 0 : base);
 
+  const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
   // Semanas "a pagar" = las que tienen monto > 0.
   const aPagar = montos.filter((m) => m > 0).length;
   const pagadas = montos.reduce((n, m, i) => n + (m > 0 && semanas[i] ? 1 : 0), 0);
@@ -149,7 +150,7 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
           </span>
           <span className="cr-cat">
             {cat.nombre}
-            {gasto ? ` · ${formatMoneda(gasto.monto || 0)} en ${aPagar} semana${aPagar === 1 ? '' : 's'}` : ` · ${count} semanas`}
+            {gasto ? ` · ${formatImporte(gasto.monto || 0, mon)} en ${aPagar} semana${aPagar === 1 ? '' : 's'}` : ` · ${count} semanas`}
           </span>
         </span>
 
@@ -164,8 +165,8 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
           <span className="cr-semanal-por">/sem</span>
         </div>
 
-        <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)} title="Ver semanas">
-          {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+        <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`} onClick={() => setAbierto((a) => !a)} title="Ver semanas">
+          {formatImporte(gasto?.monto || 0, mon)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
       </div>
 
@@ -291,6 +292,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuar
   const tieneGasto = Boolean(gasto);
   const estado = estadoGasto(gasto);
   const estadoLabel = esIngreso ? ESTADO_LABEL_ING[estado] : ESTADO_LABEL[estado];
+  const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -330,8 +332,8 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuar
           <button className="cr-copiar" title="Copiar del mes anterior"
             onClick={() => onCopiar(concepto)}>⧉</button>
         )}
-        <button className="cr-total-btn" onClick={() => setAbierto((a) => !a)}>
-          {formatMoneda(gasto?.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+        <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`} onClick={() => setAbierto((a) => !a)}>
+          {formatImporte(gasto?.monto || 0, mon)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
       </div>
 
@@ -418,18 +420,28 @@ const Gastos = () => {
     : conceptos.filter((c) => aplicaEnMes(c, mes) || porConcepto[c.id]);
   const ocultos = conceptos.length - visibles.length;
 
+  const esUSD = (c) => c.moneda === 'usd';
   const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
   const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
 
+  // Totales en PESOS (excluye los conceptos en dólares).
+  const ingresoArs = ingresoCs.filter((c) => !esUSD(c));
+  const gastoArs   = gastoCs.filter((c) => !esUSD(c));
   const totalSueltos  = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
-  const ingresosCobrados = sumaPorTipo(ingresoCs, porConcepto, (g) => g.pagado);
-  const ingresosTotal    = sumaPorTipo(ingresoCs, porConcepto, () => true);
-  const totalGastos   = sumaPorTipo(gastoCs, porConcepto, () => true) + totalSueltos;
+  const ingresosCobrados = sumaPorTipo(ingresoArs, porConcepto, (g) => g.pagado);
+  const ingresosTotal    = sumaPorTipo(ingresoArs, porConcepto, () => true);
+  const totalGastos   = sumaPorTipo(gastoArs, porConcepto, () => true) + totalSueltos;
 
-  // Estadísticas por estado, A NIVEL CONCEPTO (no por grupo), incluyendo
-  // gastos e ingresos.
+  // Totales en DÓLARES, aparte (sin convertir).
+  const hayUSD = visibles.some(esUSD);
+  const usdIngresos = sumaPorTipo(ingresoCs.filter(esUSD), porConcepto, (g) => g.pagado);
+  const usdGastos   = sumaPorTipo(gastoCs.filter(esUSD), porConcepto, () => true);
+  const usdBalance  = usdIngresos - usdGastos;
+
+  // Estadísticas por estado (en pesos, a nivel concepto). Los conceptos en
+  // dólares no entran acá: se muestran en el panel "En dólares".
   const stats = { pagado: { n: 0, m: 0 }, pendiente: { n: 0, m: 0 }, vencido: { n: 0, m: 0 }, sincargar: { n: 0, m: 0 } };
-  visibles.forEach((c) => {
+  visibles.filter((c) => !esUSD(c)).forEach((c) => {
     const g = porConcepto[c.id];
     const e = estadoGasto(g);
     stats[e].n += 1;
@@ -485,6 +497,15 @@ const Gastos = () => {
             </button>
           ))}
         </div>
+
+        {hayUSD && (
+          <div className="usd-panel">
+            <span className="usd-titulo">💵 En dólares</span>
+            <span className="usd-dato"><small>Ingresos</small>{formatUSD(usdIngresos)}</span>
+            <span className="usd-dato"><small>Gastos</small>{formatUSD(usdGastos)}</span>
+            <span className={`usd-dato balance ${usdBalance < 0 ? 'neg' : ''}`}><small>Balance</small>{formatUSD(usdBalance)}</span>
+          </div>
+        )}
 
         {loading ? (
           <div className="pg-centro"><div className="spinner" /></div>

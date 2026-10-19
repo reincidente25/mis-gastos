@@ -148,6 +148,10 @@
   border-radius: 6px; padding: 2px 8px; white-space: nowrap;
 }
 .cf-ro-tipo.es-ingreso { color: var(--color-success); border-color: #a7f3d0; background: #ecfdf5; }
+.cf-ro-usd {
+  flex: 0 0 auto; font-size: 11px; font-weight: 700; color: #047857;
+  background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 2px 7px;
+}
 .cf-ro-cat, .cf-ro-grp {
   flex: 0 0 auto; font-size: 12px; color: var(--color-muted); white-space: nowrap;
 }

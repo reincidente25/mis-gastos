@@ -5,7 +5,7 @@ import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
-import { formatMoneda, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes } from '../utils/format';
+import { formatMoneda, formatUSD, formatImporte, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes } from '../utils/format';
 import './Tabla.css';
 
 // Variación porcentual de `curr` respecto de `prev`.
@@ -52,8 +52,8 @@ const agrupar = (conceptos) => {
   return orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0)).map((k) => ({ grupoId: k, items: mapa[k] }));
 };
 
-const Monto = ({ v }) => (
-  v > 0 ? <span className="tb-imp">{formatMoneda(v)}</span> : <span className="tb-imp vacio">$ -</span>
+const Monto = ({ v, mon }) => (
+  v > 0 ? <span className="tb-imp">{formatImporte(v, mon)}</span> : <span className="tb-imp vacio">$ -</span>
 );
 
 const Tabla = () => {
@@ -88,7 +88,10 @@ const Tabla = () => {
     // Ordenados por grupo, pero sin filas de subtotal: el grupo va como
     // etiqueta en la misma línea del concepto.
     const ordenada = agrupar(lista).flatMap((g) => g.items);
-    const totA = sumar(lista, mA), totB = sumar(lista, mB), totC = sumar(lista, mC);
+    const ars = lista.filter((c) => c.moneda !== 'usd');
+    const usd = lista.filter((c) => c.moneda === 'usd');
+    const totA = sumar(ars, mA), totB = sumar(ars, mB), totC = sumar(ars, mC);
+    const usdA = sumar(usd, mA), usdB = sumar(usd, mB), usdC = sumar(usd, mC);
     return (
       <table className="tabla-excel comparativa">
         <thead>
@@ -115,24 +118,34 @@ const Tabla = () => {
                   {c.nombre}
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
-                <td className="td-imp"><Monto v={a} /></td>
+                <td className="td-imp"><Monto v={a} mon={c.moneda} /></td>
                 <td className={`td-var ${varClase(vIzq.dir, esIngreso)}`}>{vIzq.txt}</td>
-                <td className="td-imp"><Monto v={b} /></td>
+                <td className="td-imp"><Monto v={b} mon={c.moneda} /></td>
                 <td className={`td-var ${varClase(vDer.dir, esIngreso)}`}>{vDer.txt}</td>
-                <td className="td-imp td-actual"><Monto v={cc} /></td>
+                <td className="td-imp td-actual"><Monto v={cc} mon={c.moneda} /></td>
               </tr>
             );
           })}
         </tbody>
         <tfoot>
           <tr className="fila-total">
-            <td>Total</td>
+            <td>Total {usd.length > 0 ? '$' : ''}</td>
             <td className="td-imp">{formatMoneda(totA)}</td>
             <td className={`td-var ${varClase(variacion(totA, totB).dir, esIngreso)}`}>{variacion(totA, totB).txt}</td>
             <td className="td-imp">{formatMoneda(totB)}</td>
             <td className={`td-var ${varClase(variacion(totB, totC).dir, esIngreso)}`}>{variacion(totB, totC).txt}</td>
             <td className="td-imp td-actual">{formatMoneda(totC)}</td>
           </tr>
+          {usd.length > 0 && (
+            <tr className="fila-total fila-total-usd">
+              <td>Total US$</td>
+              <td className="td-imp">{formatUSD(usdA)}</td>
+              <td className={`td-var ${varClase(variacion(usdA, usdB).dir, esIngreso)}`}>{variacion(usdA, usdB).txt}</td>
+              <td className="td-imp">{formatUSD(usdB)}</td>
+              <td className={`td-var ${varClase(variacion(usdB, usdC).dir, esIngreso)}`}>{variacion(usdB, usdC).txt}</td>
+              <td className="td-imp td-actual">{formatUSD(usdC)}</td>
+            </tr>
+          )}
         </tfoot>
       </table>
     );
