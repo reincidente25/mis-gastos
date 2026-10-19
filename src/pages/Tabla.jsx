@@ -1,36 +1,39 @@
-// src/pages/Tabla.jsx — comparación de 3 meses (anterior · actual · próximo)
-// con % de variación por concepto.
-import { useState } from 'react';
+// src/pages/Tabla.jsx — comparativa de los últimos meses (el actual a la
+// derecha). Entre cada par de meses, la variación del concepto contra su
+// período anterior (bimestral vs. bimestre, mensual vs. mes previo, etc.).
+import { useState, Fragment } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
-import { useGastosMes } from '../hooks/useGastosMes';
+import { useGastosRango } from '../hooks/useGastosRango';
 import { useEstructura } from '../context/EstructuraContext';
+import { getFrecuencia } from '../config/frecuencias';
 import { formatMoneda, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes } from '../utils/format';
 import './Tabla.css';
 
+const MESES_VISTA = 5; // cantidad de meses mostrados (incluye el actual)
+
 // Variación porcentual de `curr` respecto de `prev`.
 const variacion = (prev, curr) => {
-  if (!prev && !curr) return { txt: '—', cls: 'var-nula' };
+  if (!prev && !curr) return { txt: '', cls: 'var-nula' };
   if (!prev && curr) return { txt: 'nuevo', cls: 'var-nuevo' };
   if (prev && !curr) return { txt: '−100%', cls: 'var-baja' };
   const pct = ((curr - prev) / prev) * 100;
   if (Math.abs(pct) < 0.5) return { txt: '=', cls: 'var-nula' };
-  const signo = pct > 0 ? '▲' : '▼';
-  return {
-    txt: `${signo} ${Math.abs(pct) >= 100 ? Math.round(Math.abs(pct)) : Math.abs(pct).toFixed(0)}%`,
-    cls: pct > 0 ? 'var-sube' : 'var-baja',
-  };
+  return { txt: `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(0)}%`, cls: pct > 0 ? 'var-sube' : 'var-baja' };
 };
 
-// Agrupa por grupoId preservando orden; grupo '' al final.
-const agrupar = (conceptos) => {
+// Meses entre ocurrencias según la frecuencia (0 = sin comparación).
+const intervalo = (c) => getFrecuencia(c.frecuencia).meses || 1;
+
+// Ordena por grupo, preservando orden de aparición; grupo '' al final.
+const ordenarPorGrupo = (conceptos) => {
   const orden = [], mapa = {};
   conceptos.forEach((c) => {
     const k = c.grupoId || '';
     if (!mapa[k]) { mapa[k] = []; orden.push(k); }
     mapa[k].push(c);
   });
-  return orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0)).map((k) => ({ grupoId: k, items: mapa[k] }));
+  return orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0)).flatMap((k) => mapa[k]);
 };
 
 const Monto = ({ v }) => (
@@ -38,69 +41,70 @@ const Monto = ({ v }) => (
 );
 
 const Tabla = () => {
-  const [mes, setMes] = useState(mesActual());
-  const mesPrev = mesVecino(mes, -1);
-  const mesNext = mesVecino(mes, 1);
+  const [mesBase, setMesBase] = useState(mesActual());
 
-  const prev = useGastosMes(mesPrev);
-  const curr = useGastosMes(mes);
-  const next = useGastosMes(mesNext);
+  // Meses de más viejo a más nuevo; el actual (mesBase) queda a la derecha.
+  const meses = Array.from({ length: MESES_VISTA }, (_, i) => mesVecino(mesBase, -(MESES_VISTA - 1 - i)));
+  const actual = meses[meses.length - 1];
+
+  const { conceptos, porMes, loading } = useGastosRango(meses);
   const { getGrp } = useEstructura();
 
-  const loading = curr.loading || prev.loading || next.loading;
-  const conceptos = curr.conceptos;
+  const montoEn = (m, c) => Number(porMes[m]?.[c.id]?.monto) || 0;
 
-  const mA = (c) => Number(prev.porConcepto[c.id]?.monto) || 0;
-  const mB = (c) => Number(curr.porConcepto[c.id]?.monto) || 0;
-  const mC = (c) => Number(next.porConcepto[c.id]?.monto) || 0;
+  // Variación de un concepto en el mes `m` contra su período anterior.
+  const varDe = (m, c) => {
+    const cada = intervalo(c);
+    if (cada <= 0) return { txt: '', cls: 'var-nula' };
+    const base = mesVecino(m, -cada);
+    return variacion(base in porMes ? montoEn(base, c) : 0, montoEn(m, c));
+  };
 
-  // Visibles: conceptos que aplican o tienen gasto en alguno de los 3 meses.
-  const aplicaAlguno = (c) =>
-    aplicaEnMes(c, mesPrev) || aplicaEnMes(c, mes) || aplicaEnMes(c, mesNext) ||
-    mA(c) || mB(c) || mC(c);
-
-  const visibles = conceptos.filter(aplicaAlguno);
+  // Visibles: aplican o tienen monto en alguno de los meses mostrados.
+  const visibles = conceptos.filter((c) => meses.some((m) => aplicaEnMes(c, m) || montoEn(m, c)));
   const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
   const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
 
-  const sumar = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
+  const totalMes = (lista, m) => lista.reduce((a, c) => a + montoEn(m, c), 0);
 
   const Seccion = ({ titulo, lista }) => {
-    // Ordenados por grupo, pero sin filas de subtotal: el grupo va como
-    // etiqueta en la misma línea del concepto.
-    const ordenada = agrupar(lista).flatMap((g) => g.items);
-    const totA = sumar(lista, mA), totB = sumar(lista, mB), totC = sumar(lista, mC);
+    const filas = ordenarPorGrupo(lista);
+    // nº de columnas = 1 (concepto) + meses + variaciones entre meses
+    const cols = 1 + meses.length + (meses.length - 1);
     return (
       <table className="tabla-excel comparativa">
         <thead>
-          <tr><th className="th-titulo" colSpan={6}>{titulo}</th></tr>
+          <tr><th className="th-titulo" colSpan={cols}>{titulo}</th></tr>
           <tr>
             <th>Concepto</th>
-            <th className="th-imp">{mesCorto(mesPrev)}</th>
-            <th className="th-var">Var.</th>
-            <th className="th-imp th-actual">{mesCorto(mes)}</th>
-            <th className="th-var">Var.</th>
-            <th className="th-imp">{mesCorto(mesNext)}</th>
+            {meses.map((m, i) => (
+              <Fragment key={m}>
+                {i > 0 && <th className="th-var">Var.</th>}
+                <th className={`th-imp ${m === actual ? 'th-actual' : ''}`}>{mesCorto(m)}</th>
+              </Fragment>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {ordenada.map((c) => {
-            const a = mA(c), b = mB(c), cc = mC(c);
-            const vIzq = variacion(a, b);   // anterior → actual
-            const vDer = variacion(b, cc);  // actual → próximo
+          {filas.map((c) => {
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
-            const tono = vIzq.cls === 'var-sube' ? 'fila-sube' : vIzq.cls === 'var-baja' ? 'fila-baja' : '';
+            const vAct = varDe(actual, c);
+            const tono = vAct.cls === 'var-sube' ? 'fila-sube' : vAct.cls === 'var-baja' ? 'fila-baja' : '';
             return (
-              <tr key={c.id} className={`${b > 0 ? '' : 'fila-vacia'} ${tono}`}>
+              <tr key={c.id} className={`${montoEn(actual, c) > 0 ? '' : 'fila-vacia'} ${tono}`}>
                 <td className="td-concepto">
                   {c.nombre}
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
-                <td className="td-imp"><Monto v={a} /></td>
-                <td className={`td-var ${vIzq.cls}`}>{vIzq.txt}</td>
-                <td className="td-imp td-actual"><Monto v={b} /></td>
-                <td className={`td-var ${vDer.cls}`}>{vDer.txt}</td>
-                <td className="td-imp"><Monto v={cc} /></td>
+                {meses.map((m, i) => {
+                  const v = varDe(m, c);
+                  return (
+                    <Fragment key={m}>
+                      {i > 0 && <td className={`td-var ${v.cls}`}>{v.txt}</td>}
+                      <td className={`td-imp ${m === actual ? 'td-actual' : ''}`}><Monto v={montoEn(m, c)} /></td>
+                    </Fragment>
+                  );
+                })}
               </tr>
             );
           })}
@@ -108,11 +112,16 @@ const Tabla = () => {
         <tfoot>
           <tr className="fila-total">
             <td>Total</td>
-            <td className="td-imp">{formatMoneda(totA)}</td>
-            <td className={`td-var ${variacion(totA, totB).cls}`}>{variacion(totA, totB).txt}</td>
-            <td className="td-imp td-actual">{formatMoneda(totB)}</td>
-            <td className={`td-var ${variacion(totB, totC).cls}`}>{variacion(totB, totC).txt}</td>
-            <td className="td-imp">{formatMoneda(totC)}</td>
+            {meses.map((m, i) => {
+              const t = totalMes(lista, m);
+              const v = i > 0 ? variacion(totalMes(lista, meses[i - 1]), t) : null;
+              return (
+                <Fragment key={m}>
+                  {i > 0 && <td className={`td-var ${v.cls}`}>{v.txt}</td>}
+                  <td className={`td-imp ${m === actual ? 'td-actual' : ''}`}>{formatMoneda(t)}</td>
+                </Fragment>
+              );
+            })}
           </tr>
         </tfoot>
       </table>
@@ -125,9 +134,9 @@ const Tabla = () => {
         <header className="pg-header">
           <div>
             <h1>📋 Comparativa</h1>
-            <p className="pg-sub">{mesLegible(mesPrev)} · {mesLegible(mes)} · {mesLegible(mesNext)}</p>
+            <p className="pg-sub">{mesLegible(meses[0])} → {mesLegible(actual)}</p>
           </div>
-          <MesSelector mes={mes} onChange={setMes} />
+          <MesSelector mes={mesBase} onChange={setMesBase} />
         </header>
 
         {loading ? (
@@ -136,9 +145,12 @@ const Tabla = () => {
           <section className="card"><p className="pg-vacio-inline">No hay conceptos cargados.</p></section>
         ) : (
           <div className="tablas-wrap">
-            <Seccion titulo="GASTOS" lista={gastoCs} />
-            {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} />}
-            <p className="tabla-nota">Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
+            <div className="tabla-scroll"><Seccion titulo="GASTOS" lista={gastoCs} /></div>
+            {ingresoCs.length > 0 && <div className="tabla-scroll"><Seccion titulo="INGRESOS" lista={ingresoCs} /></div>}
+            <p className="tabla-nota">
+              Cada <strong>Var.</strong> compara el mes con el período anterior del concepto
+              (bimestral vs. bimestre, mensual vs. mes previo). ▲ subió · ▼ bajó.
+            </p>
           </div>
         )}
       </div>

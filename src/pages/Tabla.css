@@ -1,6 +1,7 @@
 /* src/pages/Tabla.css */
 .tabla-acciones { display: flex; align-items: center; gap: 14px; }
 .tablas-wrap { display: flex; flex-direction: column; gap: 22px; }
+.tabla-scroll { overflow-x: auto; }
 
 .tabla-excel {
   width: 100%; max-width: 760px; border-collapse: collapse;
@@ -8,7 +9,7 @@
   border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm);
   font-size: 13px;
 }
-.tabla-excel.comparativa { max-width: 920px; }
+.tabla-excel.comparativa { max-width: none; }
 .tabla-excel th, .tabla-excel td {
   border: 1px solid var(--color-border); padding: 6px 12px; text-align: left;
 }
