@@ -33,10 +33,10 @@
 /* Ítems de categoría/grupo */
 .cat-item {
   display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
-  padding: 6px 10px; border: 1px solid var(--color-border); border-radius: 10px;
+  padding: 9px 12px; border: 1px solid var(--color-border); border-radius: 11px;
   background: var(--color-surface-2);
 }
-.cat-chip { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+.cat-chip { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; }
 .cat-item .cc-nombre-input { flex: 1 1 auto; min-width: 0; }
 .cat-item .cat-select { flex: 0 0 auto; min-width: 56px; width: auto; padding: 6px; }
 .cat-item .suelto-borrar { flex-shrink: 0; }
@@ -78,11 +78,11 @@
 }
 
 /* Conceptos como filas */
-.filas-lista { display: flex; flex-direction: column; gap: 4px; }
+.filas-lista { display: flex; flex-direction: column; gap: 6px; }
 .concepto-fila {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 5px 10px; border: 1px solid var(--color-border);
-  border-radius: 9px; background: var(--color-surface-2);
+  padding: 8px 10px; border: 1px solid var(--color-border);
+  border-radius: 10px; background: var(--color-surface-2);
 }
 .concepto-fila.archivado { opacity: 0.6; }
 .cf-nombre {
@@ -97,7 +97,7 @@
 .cf-acciones { display: flex; gap: 2px; margin-left: auto; }
 
 /* Grupos como árbol */
-.arbol-lista { display: flex; flex-direction: column; gap: 6px; }
+.arbol-lista { display: flex; flex-direction: column; gap: 12px; }
 .grupo-arbol {
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: 12px; overflow: hidden; transition: box-shadow 0.15s, border-color 0.15s;
@@ -106,7 +106,7 @@
 /* Todo en una sola línea: 📁 nombre · chips · conteo */
 .grupo-arbol-head {
   display: flex; align-items: center; gap: 10px;
-  padding: 7px 14px; background: var(--color-surface);
+  padding: 11px 16px; background: var(--color-surface);
 }
 .ga-chip { font-size: 15px; opacity: 0.8; flex-shrink: 0; }
 /* Nombre como texto en negrita; borde solo al enfocar */
