@@ -26,7 +26,13 @@ const Home = () => {
   // El ingreso impacta solo cuando está cobrado (pagado === true).
   const totalIngresos = gastos.reduce((a, g) => a + (tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
   const totalGastos   = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
-  const pagado    = gastos.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
+  // Pagado: montos de gastos marcados pagos; en los semanales, suma solo las
+  // semanas ya pagadas (pago parcial).
+  const pagado = gastos.reduce((a, g) => {
+    if (tipoDe(g) === 'ingreso') return a;
+    if (g.esSemanal) return a + (Number(g.montoSemanal) || 0) * (g.semanas || []).filter(Boolean).length;
+    return a + (g.pagado ? Number(g.monto) || 0 : 0);
+  }, 0);
   const pendiente = totalGastos - pagado;
   const balance   = totalIngresos - totalGastos;
 

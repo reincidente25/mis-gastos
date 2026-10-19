@@ -398,7 +398,17 @@ const Gastos = () => {
     const g = porConcepto[c.id];
     const e = estadoGasto(g);
     stats[e].n += 1;
-    stats[e].m += Number(g?.monto) || 0;
+    const monto = Number(g?.monto) || 0;
+    // Semanal parcial: la parte ya pagada suma a "Pagados" y solo lo que
+    // falta queda en pendiente/vencido.
+    if (g?.esSemanal && e !== 'pagado') {
+      const pagadas = (g.semanas || []).filter(Boolean).length;
+      const pagadoMonto = (Number(g.montoSemanal) || 0) * pagadas;
+      stats.pagado.m += pagadoMonto;
+      stats[e].m += Math.max(0, monto - pagadoMonto);
+    } else {
+      stats[e].m += monto;
+    }
   });
 
   // Al filtrar por estado, la lista combina gastos e ingresos.
