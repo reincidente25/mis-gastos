@@ -80,6 +80,22 @@ const MontoSemanalInput = ({ value, onCommit }) => {
   );
 };
 
+// Monto editable de una semana puntual (puede ser 0 = no se paga).
+const SemanaMontoInput = ({ value, onCommit }) => {
+  const [v, setV] = useState(value ?? '');
+  useEffect(() => { setV(value ?? ''); }, [value]);
+  return (
+    <span className="semana-monto-box">
+      <span className="semana-monto-pesos">$</span>
+      <input className="semana-monto-input" type="number" min="0" step="0.01"
+        value={v}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={() => onCommit(v)}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+    </span>
+  );
+};
+
 // Fila de un concepto semanal: monto por semana; cada semana se abre como
 // sub-ítem (con su fecha) para marcarla pagada.
 const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, onGuardarSemanal }) => {
@@ -95,16 +111,30 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
 
   const semanas = Array.from({ length: count }, (_, i) => Boolean(gasto?.semanas?.[i]));
   const montoSemanal = gasto?.montoSemanal ?? '';
-  const pagadas = semanas.filter(Boolean).length;
-  const estado = !gasto ? 'sincargar' : pagadas === count ? 'pagado' : 'pendiente';
-  const estadoLabel = !gasto ? 'Falta cargar' : pagadas === count ? 'Pagado' : `${pagadas}/${count} semanas`;
+  const base = Number(montoSemanal) || 0;
+  // Monto de cada semana: el guardado, o el base si no hay override.
+  const montos = Array.from({ length: count }, (_, i) =>
+    gasto?.montosSemana?.[i] !== undefined ? Number(gasto.montosSemana[i]) || 0 : base);
 
-  const guardar = (nuevoMonto, nuevasSemanas) =>
-    onGuardarSemanal(concepto, { montoSemanal: nuevoMonto, semanas: nuevasSemanas, fechas });
+  // Semanas "a pagar" = las que tienen monto > 0.
+  const aPagar = montos.filter((m) => m > 0).length;
+  const pagadas = montos.reduce((n, m, i) => n + (m > 0 && semanas[i] ? 1 : 0), 0);
+  const estado = !gasto ? 'sincargar' : aPagar > 0 && pagadas === aPagar ? 'pagado' : 'pendiente';
+  const estadoLabel = !gasto ? 'Falta cargar' : aPagar > 0 && pagadas === aPagar ? 'Pagado' : `${pagadas}/${aPagar} semanas`;
+
+  const guardar = ({ nuevoBase = base, nuevosMontos = montos, nuevasSemanas = semanas }) =>
+    onGuardarSemanal(concepto, {
+      montoSemanal: nuevoBase, montosSemana: nuevosMontos, semanas: nuevasSemanas, fechas,
+    });
 
   const toggleSemana = (i) => {
     if (!gasto) return;
-    guardar(montoSemanal, semanas.map((b, idx) => (idx === i ? !b : b)));
+    guardar({ nuevasSemanas: semanas.map((b, idx) => (idx === i ? !b : b)) });
+  };
+
+  const setMontoSemana = (i, val) => {
+    if (!gasto) return;
+    guardar({ nuevosMontos: montos.map((m, idx) => (idx === i ? Number(val) || 0 : m)) });
   };
 
   return (
@@ -119,14 +149,18 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
           </span>
           <span className="cr-cat">
             {cat.nombre}
-            {gasto ? ` · ${formatMoneda(montoSemanal || 0)}/sem × ${count} = ${formatMoneda(gasto.monto || 0)}` : ` · ${count} semanas`}
+            {gasto ? ` · ${formatMoneda(gasto.monto || 0)} en ${aPagar} semana${aPagar === 1 ? '' : 's'}` : ` · ${count} semanas`}
           </span>
         </span>
 
         <div className="cr-semanal-box">
           <span className="cr-semanal-pesos">$</span>
           <MontoSemanalInput value={montoSemanal}
-            onCommit={(val) => guardar(val, gasto ? semanas : Array(count).fill(false))} />
+            onCommit={(val) => guardar({
+              nuevoBase: val,
+              nuevosMontos: Array(count).fill(Number(val) || 0),
+              nuevasSemanas: gasto ? semanas : Array(count).fill(false),
+            })} />
           <span className="cr-semanal-por">/sem</span>
         </div>
 
@@ -140,12 +174,13 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
           {!gasto ? (
             <p className="semanas-aviso">Cargá un monto por semana para habilitar el pago semana a semana.</p>
           ) : (
-            semanas.map((pagada, i) => (
-              <label key={i} className={`semana-item ${pagada ? 'si' : ''}`}>
-                <input type="checkbox" checked={pagada} onChange={() => toggleSemana(i)} />
+            montos.map((m, i) => (
+              <div key={i} className={`semana-item ${m > 0 && semanas[i] ? 'si' : ''} ${m <= 0 ? 'cero' : ''}`}>
+                <input type="checkbox" checked={Boolean(semanas[i])} disabled={m <= 0}
+                  onChange={() => toggleSemana(i)} title={m <= 0 ? 'Sin monto esta semana' : 'Marcar pagada'} />
                 <span className="semana-nombre">{fechas[i] ? fechaLarga(fechas[i]) : `Semana ${i + 1}`}</span>
-                <span className="semana-monto">{formatMoneda(montoSemanal || 0)}</span>
-              </label>
+                <SemanaMontoInput value={m} onCommit={(val) => setMontoSemana(i, val)} />
+              </div>
             ))
           )}
         </div>
@@ -402,8 +437,8 @@ const Gastos = () => {
     // Semanal parcial: la parte ya pagada suma a "Pagados" y solo lo que
     // falta queda en pendiente/vencido.
     if (g?.esSemanal && e !== 'pagado') {
-      const pagadas = (g.semanas || []).filter(Boolean).length;
-      const pagadoMonto = (Number(g.montoSemanal) || 0) * pagadas;
+      const montosS = Array.isArray(g.montosSemana) ? g.montosSemana : [];
+      const pagadoMonto = montosS.reduce((s, mm, i) => s + (g.semanas?.[i] ? Number(mm) || 0 : 0), 0);
       stats.pagado.m += pagadoMonto;
       stats[e].m += Math.max(0, monto - pagadoMonto);
     } else {

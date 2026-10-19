@@ -30,7 +30,10 @@ const Home = () => {
   // semanas ya pagadas (pago parcial).
   const pagado = gastos.reduce((a, g) => {
     if (tipoDe(g) === 'ingreso') return a;
-    if (g.esSemanal) return a + (Number(g.montoSemanal) || 0) * (g.semanas || []).filter(Boolean).length;
+    if (g.esSemanal) {
+      const montosS = Array.isArray(g.montosSemana) ? g.montosSemana : [];
+      return a + montosS.reduce((s, mm, i) => s + (g.semanas?.[i] ? Number(mm) || 0 : 0), 0);
+    }
     return a + (g.pagado ? Number(g.monto) || 0 : 0);
   }, 0);
   const pendiente = totalGastos - pagado;

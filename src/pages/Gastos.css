@@ -457,8 +457,24 @@ button.grupo-head:hover { filter: brightness(0.98); }
 .semana-item.si { border-color: #a7f3d0; background: #f0fdf4; }
 .semana-nombre { font-weight: 600; }
 .semana-fecha { color: var(--color-muted); font-size: 12px; white-space: nowrap; }
-.semana-monto { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-primary); white-space: nowrap; }
 .semanas-aviso { font-size: 13px; color: var(--color-muted); padding: 4px 6px; }
+
+/* Monto editable por semana */
+.semana-monto-box { display: inline-flex; align-items: center; position: relative; }
+.semana-monto-pesos {
+  position: absolute; left: 8px; font-size: 12px; font-weight: 700;
+  color: var(--color-primary); pointer-events: none;
+}
+.semana-monto-input {
+  width: 100px; text-align: right; padding: 5px 9px 5px 18px;
+  background: var(--color-primary-soft); border: 1px solid #c7d2fe; border-radius: 7px;
+  color: var(--color-primary); font-size: 13px; font-weight: 700; outline: none;
+}
+.semana-monto-input:focus { background: #fff; border-color: var(--color-primary); }
+/* Semana sin monto (0): se ve apagada */
+.semana-item.cero { opacity: 0.6; }
+.semana-item.cero .semana-monto-input { background: var(--color-surface-2); border-color: var(--color-border); color: var(--color-muted); }
+.semana-item.cero .semana-monto-pesos { color: var(--color-muted); }
 
 @media (max-width: 640px) { .semanas-detalle { margin-left: 0; } }
 

@@ -96,14 +96,24 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
 export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) => {
   const id = `${mes}__${concepto.id}`;
   const ref = doc(db, 'hogares', hogarId, 'gastos', id);
-  const semanal = Number(datos.montoSemanal) || 0;
+  const semanal = Number(datos.montoSemanal) || 0;     // monto base por semana
   const semanas = Array.isArray(datos.semanas) ? datos.semanas.map(Boolean) : [];
   const fechas = Array.isArray(datos.fechas) ? datos.fechas : [];
+  // Monto por semana: permite que una semana valga 0 (no se paga esa semana).
+  const montosSemana = Array.isArray(datos.montosSemana)
+    ? datos.montosSemana.map((n) => Number(n) || 0)
+    : semanas.map(() => semanal);
 
-  if (semanal <= 0) {
+  const total = montosSemana.reduce((a, n) => a + n, 0);
+  if (total <= 0) {
     await deleteDoc(ref).catch(() => {});
     return null;
   }
+
+  // Pagado = todas las semanas con monto > 0 están marcadas.
+  const conMonto = montosSemana.map((n, i) => ({ n, pagada: semanas[i] }));
+  const aPagar = conMonto.filter((s) => s.n > 0);
+  const pagado = aPagar.length > 0 && aPagar.every((s) => s.pagada);
 
   const payload = {
     mes,
@@ -113,12 +123,13 @@ export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) =>
     grupoId: concepto.grupoId || '',
     esSemanal: true,
     montoSemanal: semanal,
-    monto: semanal * semanas.length,
+    montosSemana,
+    monto: total,
     semanas,
     fechas,
     items: [],
     vencimiento: '',
-    pagado: semanas.length > 0 && semanas.every(Boolean),
+    pagado,
     updatedBy: uid,
     updatedAt: serverTimestamp(),
   };
