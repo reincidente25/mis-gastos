@@ -428,10 +428,14 @@ button.grupo-head:hover { filter: brightness(0.98); }
 
 /* Concepto semanal: monto por semana + detalle expandible por semana */
 .cr-semanal-box {
-  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; position: relative;
+}
+.cr-semanal-pesos {
+  position: absolute; left: 10px; font-size: 14px; font-weight: 700;
+  color: var(--color-primary); pointer-events: none;
 }
 .cr-semanal-input {
-  width: 110px; text-align: right; padding: 7px 10px;
+  width: 118px; text-align: right; padding: 7px 10px 7px 20px;
   background: var(--color-primary-soft); border: 1px solid #c7d2fe; border-radius: 8px;
   color: var(--color-primary); font-size: 14px; font-weight: 700; outline: none;
 }

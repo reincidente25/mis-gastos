@@ -124,6 +124,7 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
         </span>
 
         <div className="cr-semanal-box">
+          <span className="cr-semanal-pesos">$</span>
           <MontoSemanalInput value={montoSemanal}
             onCommit={(val) => guardar(val, gasto ? semanas : Array(count).fill(false))} />
           <span className="cr-semanal-por">/sem</span>
