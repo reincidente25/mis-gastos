@@ -9,17 +9,36 @@ import { formatMoneda, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes }
 import './Tabla.css';
 
 // Variación porcentual de `curr` respecto de `prev`.
+// Devuelve dir ('sube'|'baja'|'nuevo'|'nula') y txt; el color se decide luego
+// según sea gasto o ingreso (en ingresos subir es bueno → verde).
 const variacion = (prev, curr) => {
-  if (!prev && !curr) return { txt: '—', cls: 'var-nula' };
-  if (!prev && curr) return { txt: 'nuevo', cls: 'var-nuevo' };
-  if (prev && !curr) return { txt: '−100%', cls: 'var-baja' };
+  if (!prev && !curr) return { txt: '—', dir: 'nula' };
+  if (!prev && curr) return { txt: 'nuevo', dir: 'nuevo' };
+  if (prev && !curr) return { txt: '−100%', dir: 'baja' };
   const pct = ((curr - prev) / prev) * 100;
-  if (Math.abs(pct) < 0.5) return { txt: '=', cls: 'var-nula' };
+  if (Math.abs(pct) < 0.5) return { txt: '=', dir: 'nula' };
   const signo = pct > 0 ? '▲' : '▼';
   return {
     txt: `${signo} ${Math.abs(pct) >= 100 ? Math.round(Math.abs(pct)) : Math.abs(pct).toFixed(0)}%`,
-    cls: pct > 0 ? 'var-sube' : 'var-baja',
+    dir: pct > 0 ? 'sube' : 'baja',
   };
+};
+
+// Clase de color para la variación; para ingresos se invierte (subir = verde).
+const varClase = (dir, esIngreso) => {
+  if (dir === 'nuevo') return 'var-nuevo';
+  if (dir === 'nula') return 'var-nula';
+  const sube = dir === 'sube';
+  const positivo = esIngreso ? sube : !sube; // ¿es "bueno"?
+  return positivo ? 'var-baja' : 'var-sube';  // var-baja = verde, var-sube = rojo
+};
+
+// Tinte de fila según la dirección (invertido para ingresos).
+const filaTono = (dir, esIngreso) => {
+  if (dir !== 'sube' && dir !== 'baja') return '';
+  const sube = dir === 'sube';
+  const positivo = esIngreso ? sube : !sube;
+  return positivo ? 'fila-baja' : 'fila-sube'; // fila-baja = verde, fila-sube = rojo
 };
 
 // Agrupa por grupoId preservando orden; grupo '' al final.
@@ -65,7 +84,7 @@ const Tabla = () => {
 
   const sumar = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
 
-  const Seccion = ({ titulo, lista }) => {
+  const Seccion = ({ titulo, lista, esIngreso }) => {
     // Ordenados por grupo, pero sin filas de subtotal: el grupo va como
     // etiqueta en la misma línea del concepto.
     const ordenada = agrupar(lista).flatMap((g) => g.items);
@@ -89,7 +108,7 @@ const Tabla = () => {
             const vIzq = variacion(a, b);   // mes-2 → mes-1
             const vDer = variacion(b, cc);  // mes-1 → actual
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
-            const tono = vDer.cls === 'var-sube' ? 'fila-sube' : vDer.cls === 'var-baja' ? 'fila-baja' : '';
+            const tono = filaTono(vDer.dir, esIngreso);
             return (
               <tr key={c.id} className={`${cc > 0 ? '' : 'fila-vacia'} ${tono}`}>
                 <td className="td-concepto">
@@ -97,9 +116,9 @@ const Tabla = () => {
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
                 <td className="td-imp"><Monto v={a} /></td>
-                <td className={`td-var ${vIzq.cls}`}>{vIzq.txt}</td>
+                <td className={`td-var ${varClase(vIzq.dir, esIngreso)}`}>{vIzq.txt}</td>
                 <td className="td-imp"><Monto v={b} /></td>
-                <td className={`td-var ${vDer.cls}`}>{vDer.txt}</td>
+                <td className={`td-var ${varClase(vDer.dir, esIngreso)}`}>{vDer.txt}</td>
                 <td className="td-imp td-actual"><Monto v={cc} /></td>
               </tr>
             );
@@ -109,9 +128,9 @@ const Tabla = () => {
           <tr className="fila-total">
             <td>Total</td>
             <td className="td-imp">{formatMoneda(totA)}</td>
-            <td className={`td-var ${variacion(totA, totB).cls}`}>{variacion(totA, totB).txt}</td>
+            <td className={`td-var ${varClase(variacion(totA, totB).dir, esIngreso)}`}>{variacion(totA, totB).txt}</td>
             <td className="td-imp">{formatMoneda(totB)}</td>
-            <td className={`td-var ${variacion(totB, totC).cls}`}>{variacion(totB, totC).txt}</td>
+            <td className={`td-var ${varClase(variacion(totB, totC).dir, esIngreso)}`}>{variacion(totB, totC).txt}</td>
             <td className="td-imp td-actual">{formatMoneda(totC)}</td>
           </tr>
         </tfoot>
@@ -137,7 +156,7 @@ const Tabla = () => {
         ) : (
           <div className="tablas-wrap">
             <Seccion titulo="GASTOS" lista={gastoCs} />
-            {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} />}
+            {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} esIngreso />}
             <p className="tabla-nota">Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
           </div>
         )}
