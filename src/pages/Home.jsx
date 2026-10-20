@@ -65,17 +65,8 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Los tres gráficos en una fila */}
-            <div className="home-grid-3">
-              {/* Evolución mensual del año */}
-              <section className="card">
-                <div className="card-titulo">
-                  <span>Evolución {anio}</span>
-                  <Link to="/tabla" className="home-link">Tabla →</Link>
-                </div>
-                <EvolucionMensual serie={serie} />
-              </section>
-
+            {/* Categoría + estado de pagos */}
+            <div className="home-grid">
               {/* Gastos por categoría */}
               <section className="card">
                 <div className="card-titulo">
@@ -126,38 +117,45 @@ const Home = () => {
               </section>
             </div>
 
-            {/* Ahorro / USD acumulado */}
-            {(ahorroSerie.hayAhorro || usdSerie.hayUSD) && (
-              <div className="home-grid">
-                {usdSerie.hayUSD && (
-                  <section className="card">
-                    <div className="card-titulo">
-                      <span>💵 Balance USD acumulado</span>
-                      <span className={`card-dato ${usdUltimo < 0 ? 'neg' : ''}`}>{formatUSD(usdUltimo)}</span>
-                    </div>
-                    <LineaSaldo puntos={usdSerie.puntos} valor={(p) => p.saldo} color="#059669" usd />
-                  </section>
-                )}
-                {ahorroSerie.hayAhorro && (
-                  <section className="card">
-                    <div className="card-titulo">
-                      <span>🏦 Ahorro acumulado</span>
-                      <span className="card-dato">
-                        {ahorroUltimo.ars ? formatMoneda(ahorroUltimo.ars) : ''}
-                        {ahorroUltimo.ars && ahorroUltimo.usd ? ' · ' : ''}
-                        {ahorroUltimo.usd ? formatUSD(ahorroUltimo.usd) : ''}
-                      </span>
-                    </div>
-                    <LineaSaldo
-                      puntos={ahorroSerie.puntos}
-                      valor={(p) => (ahorroUltimo.usd && !ahorroUltimo.ars ? p.usd : p.ars)}
-                      color="#0284c7"
-                      usd={Boolean(ahorroUltimo.usd && !ahorroUltimo.ars)}
-                    />
-                  </section>
-                )}
-              </div>
-            )}
+            {/* Evolución + balance USD + ahorro, todos del mismo alto */}
+            <div className="home-grid-3 iguales">
+              <section className="card">
+                <div className="card-titulo">
+                  <span>Evolución {anio}</span>
+                  <Link to="/tabla" className="home-link">Tabla →</Link>
+                </div>
+                <EvolucionMensual serie={serie} />
+              </section>
+
+              {usdSerie.hayUSD && (
+                <section className="card">
+                  <div className="card-titulo">
+                    <span>💵 Balance USD</span>
+                    <span className={`card-dato ${usdUltimo < 0 ? 'neg' : ''}`}>{formatUSD(usdUltimo)}</span>
+                  </div>
+                  <LineaSaldo puntos={usdSerie.puntos} valor={(p) => p.saldo} color="#059669" usd />
+                </section>
+              )}
+
+              {ahorroSerie.hayAhorro && (
+                <section className="card">
+                  <div className="card-titulo">
+                    <span>🏦 Ahorro</span>
+                    <span className="card-dato">
+                      {ahorroUltimo.ars ? formatMoneda(ahorroUltimo.ars) : ''}
+                      {ahorroUltimo.ars && ahorroUltimo.usd ? ' · ' : ''}
+                      {ahorroUltimo.usd ? formatUSD(ahorroUltimo.usd) : ''}
+                    </span>
+                  </div>
+                  <LineaSaldo
+                    puntos={ahorroSerie.puntos}
+                    valor={(p) => (ahorroUltimo.usd && !ahorroUltimo.ars ? p.usd : p.ars)}
+                    color="#0284c7"
+                    usd={Boolean(ahorroUltimo.usd && !ahorroUltimo.ars)}
+                  />
+                </section>
+              )}
+            </div>
           </>
         )}
       </div>

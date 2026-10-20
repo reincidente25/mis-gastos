@@ -25,8 +25,8 @@ const abreviar = (v) => {
 // ── Barras agrupadas: gastos vs ingresos por mes ──
 export const EvolucionMensual = ({ serie }) => {
   const [hover, setHover] = useState(null);
-  const W = 720, H = 158;
-  const mL = 38, mR = 10, mT = 8, mB = 20;
+  const W = 420, H = 125;
+  const mL = 34, mR = 8, mT = 8, mB = 18;
   const pw = W - mL - mR, ph = H - mT - mB;
 
   const maxDato = Math.max(1, ...serie.map((m) => Math.max(m.gastos, m.ingresos)));
@@ -82,8 +82,8 @@ export const EvolucionMensual = ({ serie }) => {
 // ── Línea de saldo acumulado (una serie) ──
 export const LineaSaldo = ({ puntos, valor, color = COL_AHORRO, usd = false }) => {
   const [hover, setHover] = useState(null);
-  const W = 340, H = 92;
-  const mL = 8, mR = 8, mT = 8, mB = 14;
+  const W = 420, H = 125;
+  const mL = 8, mR = 8, mT = 10, mB = 18;
   const pw = W - mL - mR, ph = H - mT - mB;
   const vals = puntos.map((p) => valor(p));
   const max = Math.max(1, ...vals), min = Math.min(0, ...vals);

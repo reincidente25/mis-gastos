@@ -6,7 +6,10 @@
 .home-page .home-grid { gap: 12px; }
 
 /* Tres gráficos en una fila */
-.home-grid-3 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; align-items: start; }
+.home-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+.home-grid-3.iguales { align-items: stretch; }
+.home-grid-3.iguales .card { display: flex; flex-direction: column; }
+.home-grid-3.iguales .chart-wrap { margin-top: auto; }
 @media (max-width: 900px) { .home-grid-3 { grid-template-columns: 1fr; } }
 
 /* KPIs */
