@@ -109,6 +109,22 @@
 /* Más aire entre secciones para que se note la separación */
 .tablas-wrap { gap: 32px; }
 
+/* Dos columnas: Gastos a la izquierda; Ingresos + Ahorros a la derecha */
+.tablas-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;
+}
+.col-tabla { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.tablas-grid .tabla-nota { grid-column: 1 / -1; }
+/* Las tablas ocupan el ancho de su columna; números más compactos */
+.tablas-grid .tabla-excel { font-size: 12px; }
+.tablas-grid .tabla-excel th, .tablas-grid .tabla-excel td { padding: 4px 7px; }
+.tablas-grid .th-imp, .tablas-grid .td-imp,
+.tablas-grid .th-mes, .tablas-grid .td-mes { width: auto; }
+
+@media (max-width: 1000px) {
+  .tablas-grid { grid-template-columns: 1fr; }
+}
+
 /* Sección de ahorros (movimiento + saldo acumulado) */
 .tabla-excel.serie { max-width: none; }
 

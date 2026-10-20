@@ -247,10 +247,12 @@ const Tabla = () => {
         ) : conceptos.length === 0 ? (
           <section className="card"><p className="pg-vacio-inline">No hay conceptos cargados.</p></section>
         ) : (
-          <div className="tablas-wrap">
-            <Seccion titulo="GASTOS" lista={gastoCs} />
-            {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} esIngreso />}
-            {ahorroCs.length > 0 && <SeccionAhorros lista={ahorroCs} />}
+          <div className="tablas-grid">
+            <div className="col-tabla"><Seccion titulo="GASTOS" lista={gastoCs} /></div>
+            <div className="col-tabla">
+              {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} esIngreso />}
+              {ahorroCs.length > 0 && <SeccionAhorros lista={ahorroCs} />}
+            </div>
             <p className="tabla-nota">Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
           </div>
         )}
