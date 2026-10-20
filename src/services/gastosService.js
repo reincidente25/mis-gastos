@@ -139,6 +139,12 @@ export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) =>
   return { id, ...payload };
 };
 
+/** Todos los gastos del hogar (para el dashboard anual). */
+export const listarTodosGastos = async (hogarId) => {
+  const snap = await getDocs(col(hogarId));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
 /** Todos los gastos de un concepto en cualquier mes (para saldos acumulados). */
 export const listarGastosPorConcepto = async (hogarId, conceptoId) => {
   const q = query(col(hogarId), where('conceptoId', '==', conceptoId));

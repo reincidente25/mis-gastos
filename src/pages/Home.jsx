@@ -1,11 +1,12 @@
-// src/pages/Home.jsx
+// src/pages/Home.jsx — dashboard rediseñado.
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
-import { useGastosMes } from '../hooks/useGastosMes';
 import { useHogar } from '../context/HogarContext';
 import { useEstructura } from '../context/EstructuraContext';
+import { useResumenAnual } from '../hooks/useResumenAnual';
+import { EvolucionMensual, LineaSaldo } from '../components/dashboard/Charts';
 import { formatMoneda, formatUSD, mesActual, mesLegible } from '../utils/format';
 import './Home.css';
 
@@ -15,69 +16,19 @@ const Home = () => {
   const { hogar } = useHogar();
   const { getCat } = useEstructura();
   const [mes, setMes] = useState(mesActual());
-  const { gastos, conceptos, loading, saldoAhorro, saldoAnteriorAhorro } = useGastosMes(mes);
+  const { loading, serie, ahorroSerie, usdSerie, mesStats } = useResumenAnual(mes);
+  const anio = mes.slice(0, 4);
 
-  const tipoDe = useMemo(() => {
-    const m = {};
-    conceptos.forEach((c) => { m[c.id] = c.tipo || 'gasto'; });
-    return (g) => (g.conceptoId ? m[g.conceptoId] || 'gasto' : 'gasto');
-  }, [conceptos]);
-
-  // Moneda del gasto según su concepto (los sueltos son en pesos).
-  const monedaDe = useMemo(() => {
-    const m = {};
-    conceptos.forEach((c) => { m[c.id] = c.moneda === 'usd' ? 'usd' : 'ars'; });
-    return (g) => (g.conceptoId ? m[g.conceptoId] || 'ars' : 'ars');
-  }, [conceptos]);
-
-  const esUSD = (g) => monedaDe(g) === 'usd';
-  const ars = gastos.filter((g) => !esUSD(g));
-
-  // El ingreso impacta solo cuando está cobrado (pagado === true).
-  const totalIngresos = ars.reduce((a, g) => a + (tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
-  const totalGastos   = ars.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
-
-  // Balance en dólares, acumulativo (saldo inicial + movimientos = final).
-  const usdCs = conceptos.filter((c) => c.moneda === 'usd');
-  const signoUSD = (c) => (c.tipo === 'gasto' ? -1 : 1);
-  const montoMes = (id) => Number(gastos.find((x) => x.conceptoId === id)?.monto) || 0;
-  const usdInicial = usdCs.reduce((a, c) => a + signoUSD(c) * saldoAnteriorAhorro(c.id), 0);
-  const usdMovim   = usdCs.reduce((a, c) => a + signoUSD(c) * montoMes(c.id), 0);
-  const usdFinal   = usdInicial + usdMovim;
-  const hayUSD     = usdCs.length > 0;
-
-  // Ahorros acumulados hasta el mes (saldo), por moneda.
-  const ahorroCs = conceptos.filter((c) => c.tipo === 'ahorro');
-  const ahorroUSD = ahorroCs.filter((c) => c.moneda === 'usd').reduce((a, c) => a + saldoAhorro(c.id), 0);
-  const ahorroARS = ahorroCs.filter((c) => c.moneda !== 'usd').reduce((a, c) => a + saldoAhorro(c.id), 0);
-  const hayAhorro = ahorroCs.length > 0;
-  // Pagado: montos de gastos marcados pagos; en los semanales, suma solo las
-  // semanas ya pagadas (pago parcial).
-  const pagado = ars.reduce((a, g) => {
-    if (tipoDe(g) === 'ingreso') return a;
-    if (g.esSemanal) {
-      const montosS = Array.isArray(g.montosSemana) ? g.montosSemana : [];
-      return a + montosS.reduce((s, mm, i) => s + (g.semanas?.[i] ? Number(mm) || 0 : 0), 0);
-    }
-    return a + (g.pagado ? Number(g.monto) || 0 : 0);
-  }, 0);
-  const pendiente = totalGastos - pagado;
-  const balance   = totalIngresos - totalGastos;
-
-  const porCategoria = useMemo(() => {
-    const acc = {};
-    ars.forEach((g) => {
-      if (tipoDe(g) === 'ingreso') return;
-      const id = g.categoriaId || '';
-      acc[id] = (acc[id] || 0) + (Number(g.monto) || 0);
-    });
-    return Object.entries(acc)
+  const porCategoria = useMemo(() => (
+    Object.entries(mesStats.porCat)
       .map(([id, monto]) => ({ cat: getCat(id), monto }))
-      .sort((a, b) => b.monto - a.monto);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gastos, getCat, tipoDe]);
-
+      .sort((a, b) => b.monto - a.monto)
+  ), [mesStats, getCat]);
   const mayor = porCategoria[0]?.monto || 0;
+  const { ingresos, gastos, balance, pagado, pendiente } = mesStats;
+
+  const ahorroUltimo = ahorroSerie.puntos[ahorroSerie.puntos.length - 1] || { ars: 0, usd: 0 };
+  const usdUltimo = usdSerie.puntos[usdSerie.puntos.length - 1]?.saldo || 0;
 
   return (
     <Layout>
@@ -94,18 +45,18 @@ const Home = () => {
           <div className="pg-centro"><div className="spinner" /></div>
         ) : (
           <>
-            {/* KPIs */}
+            {/* KPIs del mes */}
             <div className="kpi-row">
               <div className="kpi">
                 <span className="kpi-label">💰 Ingresos cobrados</span>
-                <span className="kpi-valor ingreso">{formatMoneda(totalIngresos)}</span>
+                <span className="kpi-valor ingreso">{formatMoneda(ingresos)}</span>
               </div>
               <div className="kpi">
                 <span className="kpi-label">💸 Gastos</span>
-                <span className="kpi-valor gasto">{formatMoneda(totalGastos)}</span>
+                <span className="kpi-valor gasto">{formatMoneda(gastos)}</span>
               </div>
               <div className={`kpi destacado ${balance < 0 ? 'neg' : ''}`}>
-                <span className="kpi-label">Balance</span>
+                <span className="kpi-label">Balance del mes</span>
                 <span className="kpi-valor">{formatMoneda(balance)}</span>
               </div>
               <div className="kpi">
@@ -114,35 +65,14 @@ const Home = () => {
               </div>
             </div>
 
-            {hayUSD && (
-              <div className="kpi-row usd-kpis">
-                <div className="kpi usd">
-                  <span className="kpi-label">💵 Saldo inicial US$</span>
-                  <span className="kpi-valor">{formatUSD(usdInicial)}</span>
-                </div>
-                <div className="kpi usd">
-                  <span className="kpi-label">💵 Movimientos US$</span>
-                  <span className="kpi-valor">{usdMovim > 0 ? '+' : ''}{formatUSD(usdMovim)}</span>
-                </div>
-                <div className={`kpi usd destacado ${usdFinal < 0 ? 'neg' : ''}`}>
-                  <span className="kpi-label">Saldo final US$</span>
-                  <span className="kpi-valor">{formatUSD(usdFinal)}</span>
-                </div>
+            {/* Evolución mensual del año */}
+            <section className="card">
+              <div className="card-titulo">
+                <span>Evolución {anio}</span>
+                <Link to="/tabla" className="home-link">Ver tabla →</Link>
               </div>
-            )}
-
-            {hayAhorro && (
-              <div className="kpi-row ahorro-kpis">
-                <div className="kpi ahorro destacado">
-                  <span className="kpi-label">🏦 Ahorro acumulado US$</span>
-                  <span className="kpi-valor">{formatUSD(ahorroUSD)}</span>
-                </div>
-                <div className="kpi ahorro">
-                  <span className="kpi-label">🏦 Ahorro acumulado $</span>
-                  <span className="kpi-valor">{formatMoneda(ahorroARS)}</span>
-                </div>
-              </div>
-            )}
+              <EvolucionMensual serie={serie} />
+            </section>
 
             <div className="home-grid">
               {/* Gastos por categoría */}
@@ -153,24 +83,18 @@ const Home = () => {
                 </div>
                 {porCategoria.length === 0 ? (
                   <div className="home-vacio">
-                    <p>Todavía no cargaste gastos este mes.</p>
+                    <p>Sin gastos cargados este mes.</p>
                     <Link to="/gastos" className="home-cta">Ir a cargar gastos</Link>
                   </div>
                 ) : (
                   <div className="home-barras">
-                    {porCategoria.map(({ cat, monto }) => (
+                    {porCategoria.slice(0, 7).map(({ cat, monto }) => (
                       <div className="barra-row" key={cat.id}>
-                        <span className="barra-cat">
-                          <span className="barra-icon">{cat.icon}</span>{cat.nombre}
-                        </span>
+                        <span className="barra-cat"><span className="barra-icon">{cat.icon}</span>{cat.nombre}</span>
                         <div className="barra-track">
-                          <div className="barra-fill"
-                            style={{ width: `${mayor ? (monto / mayor) * 100 : 0}%`, background: cat.color }} />
+                          <div className="barra-fill" style={{ width: `${mayor ? (monto / mayor) * 100 : 0}%`, background: cat.color }} />
                         </div>
-                        <span className="barra-monto">
-                          {formatMoneda(monto)}
-                          <small>{pct(monto, totalGastos)}%</small>
-                        </span>
+                        <span className="barra-monto">{formatMoneda(monto)}<small>{pct(monto, gastos)}%</small></span>
                       </div>
                     ))}
                   </div>
@@ -180,32 +104,59 @@ const Home = () => {
               {/* Estado de pagos */}
               <section className="card">
                 <div className="card-titulo"><span>Estado de pagos</span></div>
-                {totalGastos === 0 ? (
+                {gastos === 0 ? (
                   <p className="pg-vacio-inline">Sin gastos cargados.</p>
                 ) : (
                   <div className="pagos-panel">
                     <div className="pagos-pct">
-                      <span className="pagos-num">{pct(pagado, totalGastos)}%</span>
+                      <span className="pagos-num">{pct(pagado, gastos)}%</span>
                       <span className="pagos-cap">pagado</span>
                     </div>
                     <div className="segbar">
-                      <div className="seg seg-pagado" style={{ width: `${pct(pagado, totalGastos)}%` }} />
-                      <div className="seg seg-pend" style={{ width: `${pct(pendiente, totalGastos)}%` }} />
+                      <div className="seg seg-pagado" style={{ width: `${pct(pagado, gastos)}%` }} />
+                      <div className="seg seg-pend" style={{ width: `${pct(pendiente, gastos)}%` }} />
                     </div>
                     <div className="pagos-leyenda">
-                      <div className="pl-item">
-                        <span className="pl-dot dot-pagado" /> Pagado
-                        <span className="pl-val">{formatMoneda(pagado)}</span>
-                      </div>
-                      <div className="pl-item">
-                        <span className="pl-dot dot-pend" /> Pendiente
-                        <span className="pl-val">{formatMoneda(pendiente)}</span>
-                      </div>
+                      <div className="pl-item"><span className="pl-dot dot-pagado" /> Pagado<span className="pl-val">{formatMoneda(pagado)}</span></div>
+                      <div className="pl-item"><span className="pl-dot dot-pend" /> Pendiente<span className="pl-val">{formatMoneda(pendiente)}</span></div>
                     </div>
                   </div>
                 )}
               </section>
             </div>
+
+            {/* Ahorro / USD acumulado */}
+            {(ahorroSerie.hayAhorro || usdSerie.hayUSD) && (
+              <div className="home-grid">
+                {usdSerie.hayUSD && (
+                  <section className="card">
+                    <div className="card-titulo">
+                      <span>💵 Balance USD acumulado</span>
+                      <span className={`card-dato ${usdUltimo < 0 ? 'neg' : ''}`}>{formatUSD(usdUltimo)}</span>
+                    </div>
+                    <LineaSaldo puntos={usdSerie.puntos} valor={(p) => p.saldo} color="#059669" usd />
+                  </section>
+                )}
+                {ahorroSerie.hayAhorro && (
+                  <section className="card">
+                    <div className="card-titulo">
+                      <span>🏦 Ahorro acumulado</span>
+                      <span className="card-dato">
+                        {ahorroUltimo.ars ? formatMoneda(ahorroUltimo.ars) : ''}
+                        {ahorroUltimo.ars && ahorroUltimo.usd ? ' · ' : ''}
+                        {ahorroUltimo.usd ? formatUSD(ahorroUltimo.usd) : ''}
+                      </span>
+                    </div>
+                    <LineaSaldo
+                      puntos={ahorroSerie.puntos}
+                      valor={(p) => (ahorroUltimo.usd && !ahorroUltimo.ars ? p.usd : p.ars)}
+                      color="#0284c7"
+                      usd={Boolean(ahorroUltimo.usd && !ahorroUltimo.ars)}
+                    />
+                  </section>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
