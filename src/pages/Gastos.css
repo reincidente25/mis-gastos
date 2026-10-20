@@ -458,6 +458,15 @@ button.grupo-head:hover { filter: brightness(0.98); }
 .semana-nombre { font-weight: 600; }
 .semana-fecha { color: var(--color-muted); font-size: 12px; white-space: nowrap; }
 .semanas-aviso { font-size: 13px; color: var(--color-muted); padding: 4px 6px; }
+.semanas-cabecera {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 2px 4px 6px; font-size: 12px; color: var(--color-muted); flex-wrap: wrap;
+}
+.semanas-aplicar {
+  background: var(--color-primary-soft); border: 1px solid #c7d2fe; border-radius: 7px;
+  padding: 5px 10px; color: var(--color-primary); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.semanas-aplicar:hover { background: #e0e7ff; }
 
 /* Monto editable por semana */
 .semana-monto-box { display: inline-flex; align-items: center; position: relative; }

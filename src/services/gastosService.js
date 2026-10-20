@@ -105,7 +105,9 @@ export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) =>
     : semanas.map(() => semanal);
 
   const total = montosSemana.reduce((a, n) => a + n, 0);
-  if (total <= 0) {
+  // Se borra solo si no hay ni base ni detalle. Un base > 0 sin detalle se
+  // conserva como valor por defecto (no suma al total).
+  if (total <= 0 && semanal <= 0) {
     await deleteDoc(ref).catch(() => {});
     return null;
   }

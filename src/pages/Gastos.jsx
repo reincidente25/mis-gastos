@@ -11,6 +11,14 @@ import './Gastos.css';
 // Estado de un concepto en el mes: pagado / vencido / pendiente / falta cargar.
 const estadoGasto = (gasto) => {
   if (!gasto) return 'sincargar';
+  // Semanal: depende del detalle por semana (la cabecera no cuenta sola).
+  if (gasto.esSemanal) {
+    const montosS = Array.isArray(gasto.montosSemana) ? gasto.montosSemana : [];
+    const aPagar = montosS.filter((m) => Number(m) > 0).length;
+    if (aPagar === 0) return 'sincargar';
+    const pagadas = montosS.reduce((n, m, i) => n + (Number(m) > 0 && gasto.semanas?.[i] ? 1 : 0), 0);
+    return pagadas === aPagar ? 'pagado' : 'pendiente';
+  }
   if (gasto.pagado) return 'pagado';
   if (gasto.vencimiento && gasto.vencimiento < hoy()) return 'vencido';
   return 'pendiente';
@@ -81,13 +89,14 @@ const MontoSemanalInput = ({ value, onCommit }) => {
 };
 
 // Monto editable de una semana puntual (puede ser 0 = no se paga).
-const SemanaMontoInput = ({ value, onCommit }) => {
-  const [v, setV] = useState(value ?? '');
-  useEffect(() => { setV(value ?? ''); }, [value]);
+const SemanaMontoInput = ({ value, placeholder, onCommit }) => {
+  const [v, setV] = useState(value > 0 ? value : '');
+  useEffect(() => { setV(value > 0 ? value : ''); }, [value]);
   return (
     <span className="semana-monto-box">
       <span className="semana-monto-pesos">$</span>
       <input className="semana-monto-input" type="number" min="0" step="0.01"
+        placeholder={placeholder || '0'}
         value={v}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => onCommit(v)}
@@ -112,9 +121,9 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
   const semanas = Array.from({ length: count }, (_, i) => Boolean(gasto?.semanas?.[i]));
   const montoSemanal = gasto?.montoSemanal ?? '';
   const base = Number(montoSemanal) || 0;
-  // Monto de cada semana: el guardado, o el base si no hay override.
-  const montos = Array.from({ length: count }, (_, i) =>
-    gasto?.montosSemana?.[i] !== undefined ? Number(gasto.montosSemana[i]) || 0 : base);
+  // Monto de cada semana: SOLO lo cargado en el detalle (la cabecera no cuenta
+  // por sí sola; es un valor por defecto que se aplica con el botón).
+  const montos = Array.from({ length: count }, (_, i) => Number(gasto?.montosSemana?.[i]) || 0);
 
   const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
   // Semanas "a pagar" = las que tienen monto > 0.
@@ -134,8 +143,13 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
   };
 
   const setMontoSemana = (i, val) => {
-    if (!gasto) return;
     guardar({ nuevosMontos: montos.map((m, idx) => (idx === i ? Number(val) || 0 : m)) });
+  };
+
+  // Aplica el valor de la cabecera a todas las semanas (acción explícita).
+  const aplicarBaseATodas = () => {
+    if (base <= 0) return;
+    guardar({ nuevosMontos: Array(count).fill(base) });
   };
 
   return (
@@ -157,11 +171,7 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
         <div className="cr-semanal-box">
           <span className="cr-semanal-pesos">$</span>
           <MontoSemanalInput value={montoSemanal}
-            onCommit={(val) => guardar({
-              nuevoBase: val,
-              nuevosMontos: Array(count).fill(Number(val) || 0),
-              nuevasSemanas: gasto ? semanas : Array(count).fill(false),
-            })} />
+            onCommit={(val) => guardar({ nuevoBase: val })} />
           <span className="cr-semanal-por">/sem</span>
         </div>
 
@@ -172,18 +182,25 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
 
       {abierto && (
         <div className="semanas-detalle">
-          {!gasto ? (
-            <p className="semanas-aviso">Cargá un monto por semana para habilitar el pago semana a semana.</p>
-          ) : (
-            montos.map((m, i) => (
+          {base > 0 && (
+            <div className="semanas-cabecera">
+              <span>Cargá el monto de cada semana (vacío = no cuenta).</span>
+              <button className="semanas-aplicar" onClick={aplicarBaseATodas}>
+                Aplicar {formatImporte(base, mon)} a todas
+              </button>
+            </div>
+          )}
+          {Array.from({ length: count }).map((_, i) => {
+            const m = montos[i];
+            return (
               <div key={i} className={`semana-item ${m > 0 && semanas[i] ? 'si' : ''} ${m <= 0 ? 'cero' : ''}`}>
                 <input type="checkbox" checked={Boolean(semanas[i])} disabled={m <= 0}
-                  onChange={() => toggleSemana(i)} title={m <= 0 ? 'Sin monto esta semana' : 'Marcar pagada'} />
+                  onChange={() => toggleSemana(i)} title={m <= 0 ? 'Semana sin monto (no cuenta)' : 'Marcar pagada'} />
                 <span className="semana-nombre">{fechas[i] ? fechaLarga(fechas[i]) : `Semana ${i + 1}`}</span>
-                <SemanaMontoInput value={m} onCommit={(val) => setMontoSemana(i, val)} />
+                <SemanaMontoInput value={m} placeholder={base || 0} onCommit={(val) => setMontoSemana(i, val)} />
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
       )}
     </>
