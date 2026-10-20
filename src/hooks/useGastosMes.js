@@ -122,6 +122,26 @@ export const useGastosMes = (mes) => {
   const setImporte = (concepto, monto) => guardar(concepto, { monto });
   const setDetalle = (concepto, items) => guardar(concepto, { items });
 
+  // Marca que un concepto NO aplica en este mes: lo excluye y borra lo cargado.
+  const excluirMes = async (concepto) => {
+    const excluidos = Array.from(new Set([...(concepto.excluidos || []), mes]));
+    await actualizarConcepto(hogarId, concepto.id, { excluidos });
+    setConceptos((prev) => prev.map((c) => (c.id === concepto.id ? { ...c, excluidos } : c)));
+    // Borrar el gasto del mes si existía.
+    const g = gastos.find((x) => x.conceptoId === concepto.id);
+    if (g) {
+      await eliminarGasto(hogarId, g.id).catch(() => {});
+      setGastos((prev) => prev.filter((x) => x.conceptoId !== concepto.id));
+    }
+  };
+
+  // Vuelve a aplicar el concepto en este mes.
+  const incluirMes = async (concepto) => {
+    const excluidos = (concepto.excluidos || []).filter((m) => m !== mes);
+    await actualizarConcepto(hogarId, concepto.id, { excluidos });
+    setConceptos((prev) => prev.map((c) => (c.id === concepto.id ? { ...c, excluidos } : c)));
+  };
+
   // Guarda un concepto semanal: monto por semana + estado de pago por semana.
   const setSemanal = async (concepto, datos) => {
     const res = await guardarGastoSemanal(hogarId, mes, concepto, datos, user.uid);
@@ -184,6 +204,6 @@ export const useGastosMes = (mes) => {
     conceptos, porConcepto, sueltos, gastos, ahorros,
     loading, error, total,
     setImporte, setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
-    saldoAhorro, saldoAnteriorAhorro,
+    saldoAhorro, saldoAnteriorAhorro, excluirMes, incluirMes,
   };
 };

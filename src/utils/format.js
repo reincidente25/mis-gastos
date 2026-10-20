@@ -123,6 +123,8 @@ export const fechasDeSemana = (mes, diaSemana) => {
  * Sin mesAncla o frecuencia mensual/semanal -> siempre.
  */
 export const aplicaEnMes = (concepto, mes) => {
+  // Excluido manualmente de este mes ("no aplica").
+  if (Array.isArray(concepto.excluidos) && concepto.excluidos.includes(mes)) return false;
   const frec = concepto.frecuencia || 'mensual';
   if (frec === 'mensual' || frec === 'semanal') return true;
   const ancla = concepto.mesAncla;

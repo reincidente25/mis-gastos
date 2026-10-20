@@ -107,7 +107,7 @@ const SemanaMontoInput = ({ value, placeholder, onCommit }) => {
 
 // Fila de un concepto semanal: monto por semana; cada semana se abre como
 // sub-ítem (con su fecha) para marcarla pagada.
-const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, onGuardarSemanal }) => {
+const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, onGuardarSemanal, onExcluir }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
   const [abierto, setAbierto] = useState(false);
@@ -175,6 +175,10 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
           <span className="cr-semanal-por">/sem</span>
         </div>
 
+        {onExcluir && (
+          <button className="cr-excluir" title="No aplica este mes"
+            onClick={() => onExcluir(concepto)}>🚫</button>
+        )}
         <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`} onClick={() => setAbierto((a) => !a)} title="Ver semanas">
           {formatImporte(gasto?.monto || 0, mon)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
@@ -280,14 +284,33 @@ const DesgloseEditor = ({ items, conMoneda, onChange }) => {
   );
 };
 
-// Dispatcher: según la frecuencia, fila semanal o normal (sin hooks propios,
-// para no romper las reglas de hooks al alternar de tipo).
-const ConceptoRow = (props) =>
-  props.concepto.frecuencia === 'semanal'
+// Fila de un concepto marcado como "no aplica" en el mes (solo en "ver todos").
+const ExcluidoRow = ({ concepto, dentroDeGrupo, grupoNombre, onIncluir }) => {
+  const { getCat } = useEstructura();
+  const cat = getCat(concepto.categoriaId);
+  return (
+    <div className={`concepto-row excluido ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+      <span className="cr-nombre">
+        <span>{dentroDeGrupo ? nombreCorto(concepto, grupoNombre) : concepto.nombre}
+          <span className="cr-noaplica">No aplica este mes</span>
+        </span>
+      </span>
+      <button className="cr-restaurar" onClick={() => onIncluir(concepto)}>↩ Restaurar</button>
+    </div>
+  );
+};
+
+// Dispatcher: excluido → fila especial; según frecuencia, semanal o normal
+// (sin hooks propios, para no romper las reglas de hooks al alternar de tipo).
+const ConceptoRow = (props) => {
+  if (props.concepto.excluidos?.includes(props.mes)) return <ExcluidoRow {...props} />;
+  return props.concepto.frecuencia === 'semanal'
     ? <ConceptoRowSemanal {...props} />
     : <ConceptoRowNormal {...props} />;
+};
 
-const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
+const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, onGuardarDetalle, onGuardarMeta, onCopiar, onExcluir }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
@@ -350,6 +373,10 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
           <button className="cr-copiar" title="Copiar del mes anterior"
             onClick={() => onCopiar(concepto)}>⧉</button>
         )}
+        {onExcluir && (
+          <button className="cr-excluir" title="No aplica este mes"
+            onClick={() => onExcluir(concepto)}>🚫</button>
+        )}
         <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`} onClick={() => setAbierto((a) => !a)}>
           {formatImporte(gasto?.monto || 0, mon)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
@@ -367,7 +394,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -383,14 +410,15 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDeta
         <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
           gasto={porConcepto[c.id]} mes={mes} acum={acum ? acum(c.id) : null}
           onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
-          onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
+          onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
+          onExcluir={onExcluir} onIncluir={onIncluir} />
       ))}
     </div>
   );
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
@@ -399,13 +427,15 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, onGuardarDetall
           porConcepto={porConcepto} mes={mes} acum={acum}
           onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
           onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
+          onExcluir={onExcluir} onIncluir={onIncluir}
           señal={señal} abrirTodos={abrirTodos} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
             gasto={porConcepto[c.id]} mes={mes} acum={acum ? acum(c.id) : null}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
-            onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
+            onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
+            onExcluir={onExcluir} onIncluir={onIncluir} />
         ))
       );
     })}
@@ -428,7 +458,7 @@ const Gastos = () => {
     conceptos, porConcepto, sueltos,
     loading, error,
     setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
-    saldoAhorro, saldoAnteriorAhorro,
+    saldoAhorro, saldoAnteriorAhorro, excluirMes, incluirMes,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
 
@@ -559,6 +589,7 @@ const Gastos = () => {
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
                     mes={mes}
                     onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
+                      onExcluir={excluirMes} onIncluir={incluirMes}
                     señal={expand.n} abrirTodos={expand.abrir} />
                 )}
               </section>
@@ -574,6 +605,7 @@ const Gastos = () => {
                     <ListaConceptos lista={ingresoCs} porConcepto={porConcepto} getGrp={getGrp}
                       mes={mes}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
+                      onExcluir={excluirMes} onIncluir={incluirMes}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   </section>
                 )}
@@ -594,6 +626,7 @@ const Gastos = () => {
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
                       mes={mes}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
+                      onExcluir={excluirMes} onIncluir={incluirMes}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   )}
                 </section>
@@ -610,6 +643,7 @@ const Gastos = () => {
                     <ListaConceptos lista={ahorroCs} porConcepto={porConcepto} getGrp={getGrp}
                       mes={mes} acum={(id) => saldoAhorro(id)}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
+                      onExcluir={excluirMes} onIncluir={incluirMes}
                       señal={expand.n} abrirTodos={expand.abrir} />
                   </section>
                 )}
