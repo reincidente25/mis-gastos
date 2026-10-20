@@ -5,7 +5,7 @@ import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
-import { formatMoneda, formatUSD, formatImporte, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes } from '../utils/format';
+import { formatMoneda, formatUSD, formatImporte, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes, fechaLarga, fechaCorta } from '../utils/format';
 import './Tabla.css';
 
 // Variación porcentual de `curr` respecto de `prev`.
@@ -56,6 +56,77 @@ const Monto = ({ v, mon }) => (
   v !== 0 ? <span className="tb-imp">{formatImporte(v, mon)}</span> : <span className="tb-imp vacio">$ -</span>
 );
 
+// Peso de un ítem del desglose (USD × cotización, o el monto).
+const pesosItem = (it) => (it.moneda === 'usd'
+  ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
+  : (Number(it.monto) || 0));
+
+// Modal con el detalle de cómo se compone un concepto en un mes.
+const DetalleModal = ({ data, cat, onClose }) => {
+  const { concepto, mes, gasto } = data;
+  const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
+  const items = gasto?.items || [];
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head" style={{ borderColor: cat?.color }}>
+          <div>
+            <span className="modal-icono" style={{ background: `${cat?.color}1a`, color: cat?.color }}>{cat?.icon}</span>
+            <strong>{concepto.nombre}</strong>
+            <span className="modal-mes">{mesLegible(mes)}</span>
+          </div>
+          <button className="modal-x" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {!gasto ? (
+            <p className="modal-vacio">No hay nada cargado en este mes.</p>
+          ) : gasto.esSemanal ? (
+            <>
+              <div className="modal-lista">
+                {(gasto.montosSemana || []).map((m, i) => (
+                  (Number(m) > 0) && (
+                    <div key={i} className="modal-item">
+                      <span className="mi-det">{gasto.fechas?.[i] ? fechaLarga(gasto.fechas[i]) : `Semana ${i + 1}`}</span>
+                      <span className={`mi-estado ${gasto.semanas?.[i] ? 'ok' : ''}`}>{gasto.semanas?.[i] ? '✓ pagada' : 'pendiente'}</span>
+                      <span className="mi-monto">{formatImporte(Number(m) || 0, mon)}</span>
+                    </div>
+                  )
+                ))}
+              </div>
+              <div className="modal-total"><span>Total</span><span>{formatImporte(gasto.monto || 0, mon)}</span></div>
+            </>
+          ) : items.length ? (
+            <>
+              <div className="modal-lista">
+                {items.map((it, i) => (
+                  <div key={i} className="modal-item">
+                    <span className="mi-det">{it.detalle || 'Ítem'}</span>
+                    {it.moneda === 'usd' ? (
+                      <span className="mi-conv">US$ {Number(it.monto) || 0} × {Number(it.cotizacion) || 0}</span>
+                    ) : <span className="mi-conv" />}
+                    <span className="mi-monto">{formatMoneda(pesosItem(it))}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="modal-total"><span>Total</span><span>{formatImporte(gasto.monto || 0, mon)}</span></div>
+            </>
+          ) : (
+            <div className="modal-simple">
+              <span>Importe cargado</span>
+              <strong>{formatImporte(gasto.monto || 0, mon)}</strong>
+              {!mon.includes('usd') && gasto.vencimiento && (
+                <span className="modal-vence">Vence {fechaCorta(gasto.vencimiento)} · {gasto.pagado ? 'Pagado' : 'Pendiente'}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Tabla = () => {
   const [mes, setMes] = useState(mesActual());
   const mes2 = mesVecino(mes, -2); // dos meses atrás
@@ -65,7 +136,12 @@ const Tabla = () => {
   const dos = useGastosMes(mes2);
   const uno = useGastosMes(mes1);
   const curr = useGastosMes(mes);
-  const { getGrp } = useEstructura();
+  const { getGrp, getCat } = useEstructura();
+  const [detalle, setDetalle] = useState(null); // { concepto, mes, gasto }
+
+  const porMes = { [mes2]: dos.porConcepto, [mes1]: uno.porConcepto, [mes]: curr.porConcepto };
+  const gastoDe = (c, m) => porMes[m]?.[c.id];
+  const abrir = (c, m) => setDetalle({ concepto: c, mes: m, gasto: gastoDe(c, m) });
 
   const loading = curr.loading || uno.loading || dos.loading;
   const conceptos = curr.conceptos;
@@ -121,15 +197,15 @@ const Tabla = () => {
             const tono = filaTono(vDer.dir, esIngreso);
             return (
               <tr key={c.id} className={`${cc !== 0 ? '' : 'fila-vacia'} ${tono}`}>
-                <td className="td-concepto">
+                <td className="td-concepto td-click" onClick={() => abrir(c, mes)}>
                   {c.nombre}
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
-                <td className="td-imp"><Monto v={a} mon={c.moneda} /></td>
+                <td className="td-imp td-click" onClick={() => abrir(c, mes2)}><Monto v={a} mon={c.moneda} /></td>
                 <td className={`td-var ${varClase(vIzq.dir, esIngreso)}`}>{vIzq.txt}</td>
-                <td className="td-imp"><Monto v={b} mon={c.moneda} /></td>
+                <td className="td-imp td-click" onClick={() => abrir(c, mes1)}><Monto v={b} mon={c.moneda} /></td>
                 <td className={`td-var ${varClase(vDer.dir, esIngreso)}`}>{vDer.txt}</td>
-                <td className="td-imp td-actual"><Monto v={cc} mon={c.moneda} /></td>
+                <td className="td-imp td-actual td-click" onClick={() => abrir(c, mes)}><Monto v={cc} mon={c.moneda} /></td>
               </tr>
             );
           })}
@@ -162,8 +238,8 @@ const Tabla = () => {
   const movAh = (c, m) => Number(curr.ahorros.find((a) => a.conceptoId === c.id && a.mes === m)?.monto) || 0;
 
   // Celda de ahorro: movimiento del mes arriba, saldo acumulado abajo.
-  const CeldaAhorro = ({ mov, saldo, mon, actualCol }) => (
-    <td className={`td-mes ${actualCol ? 'td-actual' : ''}`}>
+  const CeldaAhorro = ({ mov, saldo, mon, actualCol, onClick }) => (
+    <td className={`td-mes td-click ${actualCol ? 'td-actual' : ''}`} onClick={onClick}>
       <span className={`celda-mov ${mov > 0 ? 'pos' : mov < 0 ? 'neg' : ''}`}>
         {mov !== 0 ? `${mov > 0 ? '+' : ''}${formatImporte(mov, mon)}` : '—'}
       </span>
@@ -197,7 +273,7 @@ const Tabla = () => {
               <tr key={c.id}>
                 <td className="td-concepto">{c.nombre}{grupo && <span className="td-grupo">{grupo}</span>}</td>
                 {meses.map((m) => (
-                  <CeldaAhorro key={m} mov={movAh(c, m)} saldo={saldos[m]} mon={c.moneda} actualCol={m === mes} />
+                  <CeldaAhorro key={m} mov={movAh(c, m)} saldo={saldos[m]} mon={c.moneda} actualCol={m === mes} onClick={() => abrir(c, m)} />
                 ))}
               </tr>
             );
@@ -253,8 +329,12 @@ const Tabla = () => {
               {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} esIngreso />}
               {ahorroCs.length > 0 && <SeccionAhorros lista={ahorroCs} />}
             </div>
-            <p className="tabla-nota">Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
+            <p className="tabla-nota">Tocá un importe para ver el detalle. Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
           </div>
+        )}
+
+        {detalle && (
+          <DetalleModal data={detalle} cat={getCat(detalle.concepto.categoriaId)} onClose={() => setDetalle(null)} />
         )}
       </div>
     </Layout>
