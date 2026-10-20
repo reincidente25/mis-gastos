@@ -411,7 +411,7 @@ const Gastos = () => {
     conceptos, porConcepto, sueltos,
     loading, error,
     setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
-    saldoAhorro,
+    saldoAhorro, saldoAnteriorAhorro,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
 
@@ -438,11 +438,14 @@ const Gastos = () => {
   const ingresosTotal    = sumaPorTipo(ingresoArs, porConcepto, () => true);
   const totalGastos   = sumaPorTipo(gastoArs, porConcepto, () => true) + totalSueltos;
 
-  // Totales en DÓLARES, aparte (sin convertir).
-  const hayUSD = visibles.some(esUSD);
-  const usdIngresos = sumaPorTipo(ingresoCs.filter(esUSD), porConcepto, (g) => g.pagado);
-  const usdGastos   = sumaPorTipo(gastoCs.filter(esUSD), porConcepto, () => true);
-  const usdBalance  = usdIngresos - usdGastos;
+  // Balance en DÓLARES, acumulativo: saldo inicial (meses previos) +
+  // movimientos del mes = saldo final. Gasto resta, ingreso/ahorro suma.
+  const usdCs = conceptos.filter(esUSD);
+  const hayUSD = usdCs.length > 0;
+  const signoUSD = (c) => (c.tipo === 'gasto' ? -1 : 1);
+  const usdInicial = usdCs.reduce((a, c) => a + signoUSD(c) * saldoAnteriorAhorro(c.id), 0);
+  const usdMovim   = usdCs.reduce((a, c) => a + signoUSD(c) * (Number(porConcepto[c.id]?.monto) || 0), 0);
+  const usdFinal   = usdInicial + usdMovim;
 
   // Estadísticas por estado (en pesos, a nivel concepto). Los conceptos en
   // dólares no entran acá: se muestran en el panel "En dólares".
@@ -507,9 +510,9 @@ const Gastos = () => {
         {hayUSD && (
           <div className="usd-panel">
             <span className="usd-titulo">💵 En dólares</span>
-            <span className="usd-dato"><small>Ingresos</small>{formatUSD(usdIngresos)}</span>
-            <span className="usd-dato"><small>Gastos</small>{formatUSD(usdGastos)}</span>
-            <span className={`usd-dato balance ${usdBalance < 0 ? 'neg' : ''}`}><small>Balance</small>{formatUSD(usdBalance)}</span>
+            <span className="usd-dato"><small>Saldo inicial</small>{formatUSD(usdInicial)}</span>
+            <span className={`usd-dato ${usdMovim < 0 ? 'neg' : ''}`}><small>Movimientos del mes</small>{usdMovim > 0 ? '+' : ''}{formatUSD(usdMovim)}</span>
+            <span className={`usd-dato balance ${usdFinal < 0 ? 'neg' : ''}`}><small>Saldo final</small>{formatUSD(usdFinal)}</span>
           </div>
         )}
 

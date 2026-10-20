@@ -44,10 +44,13 @@ export const useGastosMes = (mes) => {
       ]);
       const activos = cs.filter((c) => c.activo);
 
-      // Historial de los conceptos de ahorro (todos los meses) para el acumulado.
-      const ahorroIds = activos.filter((c) => c.tipo === 'ahorro').map((c) => c.id);
-      const ahs = ahorroIds.length
-        ? (await Promise.all(ahorroIds.map((id) => listarGastosPorConcepto(hogarId, id)))).flat()
+      // Historial (todos los meses) de los conceptos con saldo acumulado:
+      // ahorros y cualquier concepto en dólares.
+      const histIds = activos
+        .filter((c) => c.tipo === 'ahorro' || c.moneda === 'usd')
+        .map((c) => c.id);
+      const ahs = histIds.length
+        ? (await Promise.all(histIds.map((id) => listarGastosPorConcepto(hogarId, id)))).flat()
         : [];
 
       // Backfill: si un gasto de este mes tiene desglose y su concepto todavía

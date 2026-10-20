@@ -15,7 +15,7 @@ const Home = () => {
   const { hogar } = useHogar();
   const { getCat } = useEstructura();
   const [mes, setMes] = useState(mesActual());
-  const { gastos, conceptos, loading, saldoAhorro } = useGastosMes(mes);
+  const { gastos, conceptos, loading, saldoAhorro, saldoAnteriorAhorro } = useGastosMes(mes);
 
   const tipoDe = useMemo(() => {
     const m = {};
@@ -37,11 +37,14 @@ const Home = () => {
   const totalIngresos = ars.reduce((a, g) => a + (tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
   const totalGastos   = ars.reduce((a, g) => a + (tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
 
-  // Totales en dólares (aparte, sin convertir).
-  const usdGastos   = gastos.reduce((a, g) => a + (esUSD(g) && tipoDe(g) !== 'ingreso' ? Number(g.monto) || 0 : 0), 0);
-  const usdIngresos = gastos.reduce((a, g) => a + (esUSD(g) && tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
-  const usdBalance  = usdIngresos - usdGastos;
-  const hayUSD      = gastos.some(esUSD);
+  // Balance en dólares, acumulativo (saldo inicial + movimientos = final).
+  const usdCs = conceptos.filter((c) => c.moneda === 'usd');
+  const signoUSD = (c) => (c.tipo === 'gasto' ? -1 : 1);
+  const montoMes = (id) => Number(gastos.find((x) => x.conceptoId === id)?.monto) || 0;
+  const usdInicial = usdCs.reduce((a, c) => a + signoUSD(c) * saldoAnteriorAhorro(c.id), 0);
+  const usdMovim   = usdCs.reduce((a, c) => a + signoUSD(c) * montoMes(c.id), 0);
+  const usdFinal   = usdInicial + usdMovim;
+  const hayUSD     = usdCs.length > 0;
 
   // Ahorros acumulados hasta el mes (saldo), por moneda.
   const ahorroCs = conceptos.filter((c) => c.tipo === 'ahorro');
@@ -114,16 +117,16 @@ const Home = () => {
             {hayUSD && (
               <div className="kpi-row usd-kpis">
                 <div className="kpi usd">
-                  <span className="kpi-label">💵 Ingresos US$</span>
-                  <span className="kpi-valor">{formatUSD(usdIngresos)}</span>
+                  <span className="kpi-label">💵 Saldo inicial US$</span>
+                  <span className="kpi-valor">{formatUSD(usdInicial)}</span>
                 </div>
                 <div className="kpi usd">
-                  <span className="kpi-label">💵 Gastos US$</span>
-                  <span className="kpi-valor">{formatUSD(usdGastos)}</span>
+                  <span className="kpi-label">💵 Movimientos US$</span>
+                  <span className="kpi-valor">{usdMovim > 0 ? '+' : ''}{formatUSD(usdMovim)}</span>
                 </div>
-                <div className={`kpi usd destacado ${usdBalance < 0 ? 'neg' : ''}`}>
-                  <span className="kpi-label">Balance US$</span>
-                  <span className="kpi-valor">{formatUSD(usdBalance)}</span>
+                <div className={`kpi usd destacado ${usdFinal < 0 ? 'neg' : ''}`}>
+                  <span className="kpi-label">Saldo final US$</span>
+                  <span className="kpi-valor">{formatUSD(usdFinal)}</span>
                 </div>
               </div>
             )}
