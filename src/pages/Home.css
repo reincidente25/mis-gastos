@@ -105,6 +105,8 @@
 .seg { height: 100%; }
 .seg-pagado { background: var(--color-success); }
 .seg-pend   { background: #f59e0b; }
+.seg-venc   { background: var(--color-danger); }
+.dot-venc { background: var(--color-danger); }
 .pagos-leyenda { display: flex; flex-direction: column; gap: 8px; }
 .pl-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .pl-dot { width: 11px; height: 11px; border-radius: 3px; }

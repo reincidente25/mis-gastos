@@ -25,7 +25,7 @@ const Home = () => {
       .sort((a, b) => b.monto - a.monto)
   ), [mesStats, getCat]);
   const mayor = porCategoria[0]?.monto || 0;
-  const { ingresos, gastos, balance, pagado, pendiente } = mesStats;
+  const { ingresos, gastos, balance, pagado, pendiente, vencido } = mesStats;
 
   const ahorroUltimo = ahorroSerie.puntos[ahorroSerie.puntos.length - 1] || { ars: 0, usd: 0 };
   const usdUltimo = usdSerie.puntos[usdSerie.puntos.length - 1]?.saldo || 0;
@@ -107,10 +107,12 @@ const Home = () => {
                     <div className="segbar">
                       <div className="seg seg-pagado" style={{ width: `${pct(pagado, gastos)}%` }} />
                       <div className="seg seg-pend" style={{ width: `${pct(pendiente, gastos)}%` }} />
+                      {vencido > 0 && <div className="seg seg-venc" style={{ width: `${pct(vencido, gastos)}%` }} />}
                     </div>
                     <div className="pagos-leyenda">
                       <div className="pl-item"><span className="pl-dot dot-pagado" /> Pagado<span className="pl-val">{formatMoneda(pagado)}</span></div>
                       <div className="pl-item"><span className="pl-dot dot-pend" /> Pendiente<span className="pl-val">{formatMoneda(pendiente)}</span></div>
+                      {vencido > 0 && <div className="pl-item"><span className="pl-dot dot-venc" /> Vencido<span className="pl-val">{formatMoneda(vencido)}</span></div>}
                     </div>
                   </div>
                 )}

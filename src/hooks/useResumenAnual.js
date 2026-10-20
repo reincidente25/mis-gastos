@@ -98,7 +98,7 @@ export const useResumenAnual = (mes) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gastos, porId, anio]);
 
-  // Stats del mes elegido.
+  // Stats del mes elegido (misma lógica que la pantalla Gastos).
   const mesStats = useMemo(() => {
     const delMes = gastos.filter((g) => g.mes === mes);
     let ingresos = 0, gastosT = 0, pagado = 0, pendiente = 0, vencido = 0;
@@ -110,8 +110,18 @@ export const useResumenAnual = (mes) => {
       if (tipo === 'ingreso') { if (g.pagado) ingresos += monto; return; }
       gastosT += monto;
       porCat[categoriaId] = (porCat[categoriaId] || 0) + monto;
+
+      // Semanal: solo cuentan las semanas con monto; las pagadas restan.
+      if (g.esSemanal) {
+        const ms = Array.isArray(g.montosSemana) ? g.montosSemana : [];
+        const pagadoMonto = ms.reduce((s, m, i) => s + (g.semanas?.[i] ? Number(m) || 0 : 0), 0);
+        pagado += pagadoMonto;
+        pendiente += Math.max(0, monto - pagadoMonto);
+        return;
+      }
+      // No semanal.
       if (g.pagado) pagado += monto;
-      else if (g.vencimiento && g.vencimiento < hoy()) { vencido += monto; pendiente += monto; }
+      else if (g.vencimiento && g.vencimiento < hoy()) vencido += monto;
       else pendiente += monto;
     });
     return { ingresos, gastos: gastosT, balance: ingresos - gastosT, pagado, pendiente, vencido, porCat };
