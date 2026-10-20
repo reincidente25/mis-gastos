@@ -99,6 +99,16 @@
 
 /* Sección de ahorros (movimiento + saldo acumulado) */
 .tabla-excel.serie { max-width: none; }
+
+/* Identidad visual propia del apartado de ahorros (azul) */
+.tabla-excel.ahorros { border-color: #bae6fd; box-shadow: 0 0 0 3px #f0f9ff; }
+.tabla-excel.ahorros .th-titulo { background: linear-gradient(135deg, #0284c7, #0369a1); }
+.tabla-excel.ahorros thead tr:nth-child(2) th { background: #e0f2fe; color: #0369a1; }
+.tabla-excel.ahorros .th-actual { background: #0369a1 !important; border-color: #0369a1 !important; }
+.tabla-excel.ahorros .td-actual { background: #e0f2fe; border-color: #0369a1; }
+.tabla-excel.ahorros .td-actual .celda-monto { color: #0369a1; }
+.tabla-excel.ahorros tfoot .fila-total td { background: #e0f2fe; color: #075985; border-top-color: #0369a1; }
+.tabla-excel.ahorros .fila-total .celda-monto { color: #075985; }
 .th-mes, .td-mes { text-align: right; white-space: nowrap; }
 .td-mes { vertical-align: top; }
 .celda-mov { display: block; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }

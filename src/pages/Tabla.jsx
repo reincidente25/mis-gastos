@@ -179,9 +179,9 @@ const Tabla = () => {
     const totalSaldo = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
     const totalMov = (arr, m) => arr.reduce((a, c) => a + movAh(c, m), 0);
     return (
-      <table className="tabla-excel serie">
+      <table className="tabla-excel serie ahorros">
         <thead>
-          <tr><th className="th-titulo" colSpan={meses.length + 1}>🏦 AHORROS (movimiento y saldo acumulado)</th></tr>
+          <tr><th className="th-titulo" colSpan={meses.length + 1}>🏦 AHORROS · movimiento y saldo acumulado</th></tr>
           <tr>
             <th>Concepto</th>
             {meses.map((m) => (
