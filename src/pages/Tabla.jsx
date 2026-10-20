@@ -100,9 +100,9 @@ const Tabla = () => {
     const totA = sumar(ars, mA), totB = sumar(ars, mB), totC = sumar(ars, mC);
     const usdA = sumar(usd, mA), usdB = sumar(usd, mB), usdC = sumar(usd, mC);
     return (
-      <table className="tabla-excel comparativa">
+      <table className={`tabla-excel comparativa ${esIngreso ? 'sec-ingresos' : 'sec-gastos'}`}>
         <thead>
-          <tr><th className="th-titulo" colSpan={6}>{titulo}</th></tr>
+          <tr><th className="th-titulo" colSpan={6}>{esIngreso ? '💰 ' : '💸 '}{titulo}</th></tr>
           <tr>
             <th>Concepto</th>
             <th className="th-imp">{mesCorto(mes2)}</th>

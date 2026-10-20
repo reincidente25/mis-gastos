@@ -97,6 +97,18 @@
 }
 .fila-total-usd .td-actual { background: #059669; color: #fff; }
 
+/* Identidad por sección (cabeceras de distinto color) */
+.tabla-excel.sec-gastos .th-titulo { background: linear-gradient(135deg, #e11d48, #be123c); }
+.tabla-excel.sec-ingresos .th-titulo { background: linear-gradient(135deg, #059669, #047857); }
+.tabla-excel.sec-ingresos thead tr:nth-child(2) th { background: #ecfdf5; color: #047857; }
+.tabla-excel.sec-ingresos .th-actual { background: #047857 !important; border-color: #047857 !important; }
+.tabla-excel.sec-ingresos .td-actual { background: #ecfdf5; border-color: #047857; }
+.tabla-excel.sec-ingresos .td-actual .tb-imp { color: #047857; }
+.tabla-excel.sec-ingresos tfoot .fila-total td { background: #ecfdf5; color: #047857; border-top-color: #047857; }
+
+/* Más aire entre secciones para que se note la separación */
+.tablas-wrap { gap: 32px; }
+
 /* Sección de ahorros (movimiento + saldo acumulado) */
 .tabla-excel.serie { max-width: none; }
 
