@@ -1,15 +1,19 @@
 /* src/pages/Home.css */
-.home-page { width: 100%; display: flex; flex-direction: column; gap: 18px; }
+.home-page { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+/* Dashboard compacto: cards y títulos más chatos para entrar sin scroll */
+.home-page .card { padding: 12px 16px; border-radius: 12px; }
+.home-page .card-titulo { margin-bottom: 8px; font-size: 14px; }
+.home-page .home-grid { gap: 12px; }
 
 /* KPIs */
 .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .kpi {
   background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;
+  border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px;
   box-shadow: var(--shadow-sm);
 }
-.kpi-label { font-size: 12px; font-weight: 600; color: var(--color-muted); }
-.kpi-valor { font-size: 24px; font-weight: 700; }
+.kpi-label { font-size: 11px; font-weight: 600; color: var(--color-muted); }
+.kpi-valor { font-size: 20px; font-weight: 700; }
 .kpi-valor.ingreso { color: var(--color-success); }
 .kpi-valor.gasto   { color: var(--color-primary); }
 .kpi-valor.pend    { color: #b45309; }
@@ -54,7 +58,7 @@
 .chart-xlabel { fill: var(--color-muted); font-size: 9px; text-anchor: middle; }
 .chart-xlabel.act { fill: var(--color-text); font-weight: 700; }
 
-.chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 6px; font-size: 12px; color: var(--color-muted); font-weight: 600; }
+.chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 2px; font-size: 11px; color: var(--color-muted); font-weight: 600; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .lg-dot { width: 10px; height: 10px; border-radius: 3px; }
 
@@ -75,7 +79,7 @@
 .home-link { color: var(--color-primary); font-size: 13px; font-weight: 600; }
 
 /* Barras por categoría */
-.home-barras { display: flex; flex-direction: column; gap: 12px; }
+.home-barras { display: flex; flex-direction: column; gap: 7px; }
 .barra-row { display: grid; grid-template-columns: 160px 1fr auto; align-items: center; gap: 14px; }
 .barra-cat { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .barra-icon { font-size: 15px; }
@@ -87,7 +91,8 @@
 /* Panel estado de pagos */
 .pagos-panel { display: flex; flex-direction: column; gap: 14px; }
 .pagos-pct { display: flex; align-items: baseline; gap: 8px; }
-.pagos-num { font-size: 34px; font-weight: 800; color: var(--color-success); }
+.pagos-num { font-size: 26px; font-weight: 800; color: var(--color-success); }
+.pagos-panel { gap: 10px; }
 .pagos-cap { font-size: 14px; color: var(--color-muted); }
 .segbar { display: flex; height: 14px; border-radius: 8px; overflow: hidden; background: var(--color-surface-2); gap: 2px; }
 .seg { height: 100%; }
