@@ -496,8 +496,10 @@ const Gastos = () => {
 
   // Estadísticas por estado (en pesos, a nivel concepto). Los conceptos en
   // dólares no entran acá: se muestran en el panel "En dólares".
+  // Solo GASTOS (en pesos): los ingresos tienen su propia sección y no deben
+  // mezclarse en los montos de los tiles ("Pagados", "Sin pagar", etc.).
   const stats = { pagado: { n: 0, m: 0 }, pendiente: { n: 0, m: 0 }, vencido: { n: 0, m: 0 }, sincargar: { n: 0, m: 0 } };
-  visibles.filter((c) => !esUSD(c) && c.tipo !== 'ahorro').forEach((c) => {
+  gastoArs.forEach((c) => {
     const g = porConcepto[c.id];
     const e = estadoGasto(g);
     stats[e].n += 1;
@@ -514,8 +516,8 @@ const Gastos = () => {
     }
   });
 
-  // Al filtrar por estado, la lista combina gastos e ingresos (no ahorros).
-  const filtrados = visibles.filter((c) => c.tipo !== 'ahorro' && estadoGasto(porConcepto[c.id]) === filtro);
+  // Al filtrar por estado, se listan los gastos de ese estado.
+  const filtrados = gastoArs.filter((c) => estadoGasto(porConcepto[c.id]) === filtro);
 
   const TILES = [
     { key: 'pagado',    label: '✓ Pagados',   clase: 'st-pagado' },
