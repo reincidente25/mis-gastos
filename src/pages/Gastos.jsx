@@ -190,44 +190,6 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
   );
 };
 
-// Fila de un concepto de ahorro: saldo anterior + movimiento del mes = saldo.
-const MovimientoInput = ({ value, onCommit }) => {
-  const [v, setV] = useState(value ?? '');
-  useEffect(() => { setV(value ?? ''); }, [value]);
-  return (
-    <input className="ah-mov-input" type="number" step="0.01" placeholder="0"
-      value={v}
-      onChange={(e) => setV(e.target.value)}
-      onBlur={() => onCommit(v)}
-      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
-  );
-};
-
-const AhorroRow = ({ concepto, saldoAnterior, movimiento, saldoActual, onGuardar }) => {
-  const { getCat } = useEstructura();
-  const cat = getCat(concepto.categoriaId);
-  const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
-  return (
-    <div className="ahorro-row">
-      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-      <span className="cr-nombre">
-        <span>{concepto.nombre}{mon === 'usd' && <span className="cr-frec">US$</span>}</span>
-        <span className="cr-cat">{cat.nombre}</span>
-      </span>
-      <span className="ah-dato">
-        <small>Saldo anterior</small>{formatImporte(saldoAnterior, mon)}
-      </span>
-      <span className="ah-dato ah-mov">
-        <small>Movimiento</small>
-        <MovimientoInput value={movimiento || ''} onCommit={(val) => onGuardar(concepto, val)} />
-      </span>
-      <span className={`ah-dato ah-saldo ${saldoActual < 0 ? 'neg' : ''}`}>
-        <small>Saldo actual</small>{formatImporte(saldoActual, mon)}
-      </span>
-    </div>
-  );
-};
-
 // Editor del desglose de un concepto para el mes.
 const pesosItem = (it) => (it.moneda === 'usd'
   ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
@@ -308,7 +270,7 @@ const ConceptoRow = (props) =>
     ? <ConceptoRowSemanal {...props} />
     : <ConceptoRowNormal {...props} />;
 
-const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
+const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, onGuardarDetalle, onGuardarMeta, onCopiar }) => {
   const { getCat } = useEstructura();
   const cat = getCat(concepto.categoriaId);
   const items = gasto?.items || [];
@@ -349,6 +311,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuar
           </span>
           <span className="cr-cat">
             {cat.nombre}{(tieneItems || plantilla.length) ? ` · ${tieneItems ? items.length : plantilla.length} ítems` : ''}
+            {acum != null && <span className="cr-acum">🏦 acum. {formatImporte(acum, mon)}</span>}
           </span>
         </span>
 
@@ -387,7 +350,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, onGuar
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -401,7 +364,7 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, onGuardarDetalle, o
       </button>
       {abierto && items.map((c) => (
         <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
-          gasto={porConcepto[c.id]} mes={mes}
+          gasto={porConcepto[c.id]} mes={mes} acum={acum ? acum(c.id) : null}
           onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
           onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
       ))}
@@ -410,20 +373,20 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, onGuardarDetalle, o
 };
 
 // Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, mes, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => (
+const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, señal, abrirTodos }) => (
   <div className="concepto-lista">
     {agruparConceptos(lista).map((g) => {
       const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
       return grupoNombre ? (
         <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
-          porConcepto={porConcepto} mes={mes}
+          porConcepto={porConcepto} mes={mes} acum={acum}
           onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
           onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
           señal={señal} abrirTodos={abrirTodos} />
       ) : (
         g.items.map((c) => (
           <ConceptoRow key={c.id} concepto={c}
-            gasto={porConcepto[c.id]} mes={mes}
+            gasto={porConcepto[c.id]} mes={mes} acum={acum ? acum(c.id) : null}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
             onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar} />
         ))
@@ -448,7 +411,7 @@ const Gastos = () => {
     conceptos, porConcepto, sueltos,
     loading, error,
     setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
-    setAhorro, movimientoAhorro, saldoAhorro, saldoAnteriorAhorro,
+    saldoAhorro,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
 
@@ -464,6 +427,8 @@ const Gastos = () => {
   const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') === 'gasto');
   // Ahorros: siempre todos los conceptos de ahorro (no dependen de "ver todos").
   const ahorroCs  = conceptos.filter((c) => c.tipo === 'ahorro');
+  const ahorroAcumArs = ahorroCs.filter((c) => !esUSD(c)).reduce((a, c) => a + saldoAhorro(c.id), 0);
+  const ahorroAcumUsd = ahorroCs.filter(esUSD).reduce((a, c) => a + saldoAhorro(c.id), 0);
 
   // Totales en PESOS (excluye los conceptos en dólares).
   const ingresoArs = ingresoCs.filter((c) => !esUSD(c));
@@ -616,17 +581,16 @@ const Gastos = () => {
                 {ahorroCs.length > 0 && (
                   <section className="card">
                     <h2 className="card-titulo">
-                      <span>🏦 Ahorros <span className="card-sub">saldo acumulado</span></span>
+                      <span>🏦 Ahorros <span className="card-sub">
+                        acumulado{ahorroAcumArs ? ` ${formatMoneda(ahorroAcumArs)}` : ''}
+                        {ahorroAcumArs && ahorroAcumUsd ? ' ·' : ''}
+                        {ahorroAcumUsd ? ` ${formatUSD(ahorroAcumUsd)}` : ''}
+                      </span></span>
                     </h2>
-                    <div className="ahorros-lista">
-                      {ahorroCs.map((c) => (
-                        <AhorroRow key={c.id} concepto={c}
-                          saldoAnterior={saldoAnteriorAhorro(c.id)}
-                          movimiento={movimientoAhorro(c.id)}
-                          saldoActual={saldoAhorro(c.id)}
-                          onGuardar={setAhorro} />
-                      ))}
-                    </div>
+                    <ListaConceptos lista={ahorroCs} porConcepto={porConcepto} getGrp={getGrp}
+                      mes={mes} acum={(id) => saldoAhorro(id)}
+                      onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
+                      señal={expand.n} abrirTodos={expand.abrir} />
                   </section>
                 )}
               </>

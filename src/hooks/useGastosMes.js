@@ -9,8 +9,7 @@ import {
   getGastoConcepto,
   guardarGastoRecurrente,
   guardarGastoSemanal,
-  listarAhorros,
-  guardarAhorro,
+  listarGastosPorConcepto,
   setMetaGasto,
   crearGastoSuelto,
   eliminarGasto,
@@ -30,7 +29,7 @@ export const useGastosMes = (mes) => {
 
   const [conceptos, setConceptos] = useState([]);
   const [gastos, setGastos]       = useState([]);
-  const [ahorros, setAhorros]     = useState([]); // todos los movimientos de ahorro
+  const [ahorros, setAhorros]     = useState([]); // gastos de conceptos de ahorro (todos los meses)
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
 
@@ -39,12 +38,17 @@ export const useGastosMes = (mes) => {
     setLoading(true);
     setError('');
     try {
-      const [cs, gs, ahs] = await Promise.all([
+      const [cs, gs] = await Promise.all([
         listarConceptos(hogarId),
         listarGastosMes(hogarId, mes),
-        listarAhorros(hogarId),
       ]);
       const activos = cs.filter((c) => c.activo);
+
+      // Historial de los conceptos de ahorro (todos los meses) para el acumulado.
+      const ahorroIds = activos.filter((c) => c.tipo === 'ahorro').map((c) => c.id);
+      const ahs = ahorroIds.length
+        ? (await Promise.all(ahorroIds.map((id) => listarGastosPorConcepto(hogarId, id)))).flat()
+        : [];
 
       // Backfill: si un gasto de este mes tiene desglose y su concepto todavía
       // no tiene plantilla guardada, la guardamos (para que se replique a otros
@@ -156,32 +160,27 @@ export const useGastosMes = (mes) => {
   const total = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
 
   // ── Ahorros (acumulativos) ──
-  // Movimiento de un concepto en un mes puntual.
-  const movimientoAhorro = (conceptoId, m = mes) =>
-    Number(ahorros.find((a) => a.conceptoId === conceptoId && a.mes === m)?.movimiento) || 0;
-  // Saldo acumulado hasta un mes inclusive (suma de todos los movimientos <= m).
-  const saldoAhorro = (conceptoId, m = mes) =>
-    ahorros
-      .filter((a) => a.conceptoId === conceptoId && a.mes <= m)
-      .reduce((s, a) => s + (Number(a.movimiento) || 0), 0);
-  // Saldo que viene arrastrado del mes anterior (movimientos < m).
+  // El importe de un mes: si es el mes del hook se usa el valor "en vivo"
+  // (refleja ediciones al instante); si no, el del historial.
+  const importeAhorroMes = (conceptoId, m) =>
+    (m === mes
+      ? Number(porConcepto[conceptoId]?.monto) || 0
+      : Number(ahorros.find((a) => a.conceptoId === conceptoId && a.mes === m)?.monto) || 0);
+
+  // Saldo arrastrado del mes anterior (suma de importes de meses < m).
   const saldoAnteriorAhorro = (conceptoId, m = mes) =>
     ahorros
       .filter((a) => a.conceptoId === conceptoId && a.mes < m)
-      .reduce((s, a) => s + (Number(a.movimiento) || 0), 0);
+      .reduce((s, a) => s + (Number(a.monto) || 0), 0);
 
-  const setAhorro = async (concepto, movimiento) => {
-    const nuevo = await guardarAhorro(hogarId, mes, concepto, movimiento, user.uid);
-    setAhorros((prev) => {
-      const sin = prev.filter((a) => !(a.conceptoId === concepto.id && a.mes === mes));
-      return nuevo ? [...sin, nuevo] : sin;
-    });
-  };
+  // Saldo acumulado hasta un mes inclusive.
+  const saldoAhorro = (conceptoId, m = mes) =>
+    saldoAnteriorAhorro(conceptoId, m) + importeAhorroMes(conceptoId, m);
 
   return {
     conceptos, porConcepto, sueltos, gastos, ahorros,
     loading, error, total,
     setImporte, setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
-    setAhorro, movimientoAhorro, saldoAhorro, saldoAnteriorAhorro,
+    saldoAhorro, saldoAnteriorAhorro,
   };
 };
