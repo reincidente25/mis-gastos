@@ -27,8 +27,8 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
     return (
       <div id={`concepto-${c.id}`} className={`concepto-fila lectura ${archivado ? 'archivado' : ''} ${resaltado ? 'resaltado' : ''}`}>
         <span className="cf-ro-nombre">{c.nombre}</span>
-        <span className={`cf-ro-tipo ${c.tipo === 'ingreso' ? 'es-ingreso' : ''}`}>
-          {c.tipo === 'ingreso' ? '💰 Ingreso' : '💸 Gasto'}
+        <span className={`cf-ro-tipo ${c.tipo === 'ingreso' ? 'es-ingreso' : ''} ${c.tipo === 'ahorro' ? 'es-ahorro' : ''}`}>
+          {c.tipo === 'ingreso' ? '💰 Ingreso' : c.tipo === 'ahorro' ? '🏦 Ahorro' : '💸 Gasto'}
         </span>
         {c.moneda === 'usd' && <span className="cf-ro-usd">US$</span>}
         {cat && <span className="cf-ro-cat">{cat.icon} {cat.nombre}</span>}
@@ -54,6 +54,7 @@ const ItemConcepto = ({ c, archivado, resaltado, categorias, grupos, onGuardar, 
       <select className="cat-select" value={c.tipo || 'gasto'} onChange={(e) => onGuardar(c, { tipo: e.target.value })}>
         <option value="gasto">💸 Gasto</option>
         <option value="ingreso">💰 Ingreso</option>
+        <option value="ahorro">🏦 Ahorro</option>
       </select>
       <select className="cat-select" value={c.moneda === 'usd' ? 'usd' : 'ars'} title="Moneda"
         onChange={(e) => onGuardar(c, { moneda: e.target.value })}>

@@ -137,6 +137,42 @@ export const guardarGastoSemanal = async (hogarId, mes, concepto, datos, uid) =>
   return { id, ...payload };
 };
 
+/** Todos los movimientos de ahorro del hogar (para calcular saldos acumulados). */
+export const listarAhorros = async (hogarId) => {
+  const q = query(col(hogarId), where('esAhorro', '==', true));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+/**
+ * Guarda el movimiento de ahorro de un concepto en un mes (puede ser negativo).
+ * El saldo acumulado se calcula sumando todos los movimientos; acá solo se
+ * persiste el movimiento del mes. Movimiento 0 elimina el doc.
+ */
+export const guardarAhorro = async (hogarId, mes, concepto, movimiento, uid) => {
+  const id = `${mes}__${concepto.id}`;
+  const ref = doc(db, 'hogares', hogarId, 'gastos', id);
+  const mov = Number(movimiento) || 0;
+  if (mov === 0) {
+    await deleteDoc(ref).catch(() => {});
+    return null;
+  }
+  const payload = {
+    mes,
+    conceptoId: concepto.id,
+    concepto: concepto.nombre,
+    categoriaId: concepto.categoriaId || '',
+    grupoId: concepto.grupoId || '',
+    esAhorro: true,
+    movimiento: mov,
+    monto: mov,
+    updatedBy: uid,
+    updatedAt: serverTimestamp(),
+  };
+  await setDoc(ref, payload);
+  return { id, ...payload };
+};
+
 /** Actualiza solo vencimiento/pagado de un gasto existente del mes. */
 export const setMetaGasto = async (hogarId, mes, concepto, meta) => {
   const id = `${mes}__${concepto.id}`;

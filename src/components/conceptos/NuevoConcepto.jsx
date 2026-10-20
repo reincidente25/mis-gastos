@@ -28,6 +28,7 @@ const NuevoConcepto = ({ categorias, grupos, onCrear }) => {
       <select className="cat-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
         <option value="gasto">💸 Gasto</option>
         <option value="ingreso">💰 Ingreso</option>
+        <option value="ahorro">🏦 Ahorro</option>
       </select>
       <select className="cat-select" value={moneda} title="Moneda" onChange={(e) => setMoneda(e.target.value)}>
         <option value="ars">$ ARS</option>

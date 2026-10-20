@@ -190,6 +190,44 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
   );
 };
 
+// Fila de un concepto de ahorro: saldo anterior + movimiento del mes = saldo.
+const MovimientoInput = ({ value, onCommit }) => {
+  const [v, setV] = useState(value ?? '');
+  useEffect(() => { setV(value ?? ''); }, [value]);
+  return (
+    <input className="ah-mov-input" type="number" step="0.01" placeholder="0"
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => onCommit(v)}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+  );
+};
+
+const AhorroRow = ({ concepto, saldoAnterior, movimiento, saldoActual, onGuardar }) => {
+  const { getCat } = useEstructura();
+  const cat = getCat(concepto.categoriaId);
+  const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
+  return (
+    <div className="ahorro-row">
+      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+      <span className="cr-nombre">
+        <span>{concepto.nombre}{mon === 'usd' && <span className="cr-frec">US$</span>}</span>
+        <span className="cr-cat">{cat.nombre}</span>
+      </span>
+      <span className="ah-dato">
+        <small>Saldo anterior</small>{formatImporte(saldoAnterior, mon)}
+      </span>
+      <span className="ah-dato ah-mov">
+        <small>Movimiento</small>
+        <MovimientoInput value={movimiento || ''} onCommit={(val) => onGuardar(concepto, val)} />
+      </span>
+      <span className={`ah-dato ah-saldo ${saldoActual < 0 ? 'neg' : ''}`}>
+        <small>Saldo actual</small>{formatImporte(saldoActual, mon)}
+      </span>
+    </div>
+  );
+};
+
 // Editor del desglose de un concepto para el mes.
 const pesosItem = (it) => (it.moneda === 'usd'
   ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
@@ -410,6 +448,7 @@ const Gastos = () => {
     conceptos, porConcepto, sueltos,
     loading, error,
     setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
+    setAhorro, movimientoAhorro, saldoAhorro, saldoAnteriorAhorro,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
 
@@ -422,7 +461,9 @@ const Gastos = () => {
 
   const esUSD = (c) => c.moneda === 'usd';
   const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
-  const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
+  const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') === 'gasto');
+  // Ahorros: siempre todos los conceptos de ahorro (no dependen de "ver todos").
+  const ahorroCs  = conceptos.filter((c) => c.tipo === 'ahorro');
 
   // Totales en PESOS (excluye los conceptos en dólares).
   const ingresoArs = ingresoCs.filter((c) => !esUSD(c));
@@ -441,7 +482,7 @@ const Gastos = () => {
   // Estadísticas por estado (en pesos, a nivel concepto). Los conceptos en
   // dólares no entran acá: se muestran en el panel "En dólares".
   const stats = { pagado: { n: 0, m: 0 }, pendiente: { n: 0, m: 0 }, vencido: { n: 0, m: 0 }, sincargar: { n: 0, m: 0 } };
-  visibles.filter((c) => !esUSD(c)).forEach((c) => {
+  visibles.filter((c) => !esUSD(c) && c.tipo !== 'ahorro').forEach((c) => {
     const g = porConcepto[c.id];
     const e = estadoGasto(g);
     stats[e].n += 1;
@@ -458,8 +499,8 @@ const Gastos = () => {
     }
   });
 
-  // Al filtrar por estado, la lista combina gastos e ingresos.
-  const filtrados = visibles.filter((c) => estadoGasto(porConcepto[c.id]) === filtro);
+  // Al filtrar por estado, la lista combina gastos e ingresos (no ahorros).
+  const filtrados = visibles.filter((c) => c.tipo !== 'ahorro' && estadoGasto(porConcepto[c.id]) === filtro);
 
   const TILES = [
     { key: 'pagado',    label: '✓ Pagados',   clase: 'st-pagado' },
@@ -571,6 +612,23 @@ const Gastos = () => {
                       señal={expand.n} abrirTodos={expand.abrir} />
                   )}
                 </section>
+
+                {ahorroCs.length > 0 && (
+                  <section className="card">
+                    <h2 className="card-titulo">
+                      <span>🏦 Ahorros <span className="card-sub">saldo acumulado</span></span>
+                    </h2>
+                    <div className="ahorros-lista">
+                      {ahorroCs.map((c) => (
+                        <AhorroRow key={c.id} concepto={c}
+                          saldoAnterior={saldoAnteriorAhorro(c.id)}
+                          movimiento={movimientoAhorro(c.id)}
+                          saldoActual={saldoAhorro(c.id)}
+                          onGuardar={setAhorro} />
+                      ))}
+                    </div>
+                  </section>
+                )}
               </>
             )}
 

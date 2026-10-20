@@ -478,6 +478,31 @@ button.grupo-head:hover { filter: brightness(0.98); }
 
 @media (max-width: 640px) { .semanas-detalle { margin-left: 0; } }
 
+/* Filas de ahorro (saldo acumulado) */
+.ahorros-lista { display: flex; flex-direction: column; }
+.ahorro-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 2px; border-bottom: 1px solid var(--color-border);
+}
+.ahorro-row:last-child { border-bottom: none; }
+.ah-dato { display: flex; flex-direction: column; font-size: 15px; font-weight: 700; white-space: nowrap; text-align: right; }
+.ah-dato small { font-size: 10px; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+.ah-dato.ah-mov { flex-shrink: 0; }
+.ah-saldo { color: #0369a1; min-width: 120px; }
+.ah-saldo.neg { color: var(--color-danger); }
+.ah-mov-input {
+  width: 120px; text-align: right; padding: 7px 10px; margin-top: 2px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: 8px; color: var(--color-text); font-size: 14px; font-weight: 700; outline: none;
+}
+.ah-mov-input:focus { border-color: var(--color-primary); background: #fff; }
+.ah-dato:not(.ah-mov):first-of-type { margin-left: auto; }
+
+@media (max-width: 640px) {
+  .ahorro-row { flex-wrap: wrap; }
+  .ah-dato { font-size: 14px; }
+}
+
 /* Panel de totales en dólares */
 .usd-panel {
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;

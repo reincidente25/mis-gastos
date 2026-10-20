@@ -79,10 +79,16 @@ const Tabla = () => {
     mA(c) || mB(c) || mC(c);
 
   const visibles = conceptos.filter(aplicaAlguno);
-  const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') !== 'ingreso');
+  const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') === 'gasto');
   const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
+  const ahorroCs  = conceptos.filter((c) => c.tipo === 'ahorro');
 
   const sumar = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
+
+  // Saldo acumulado de ahorro hasta cada mes.
+  const sA = (c) => curr.saldoAhorro(c.id, mes2);
+  const sB = (c) => curr.saldoAhorro(c.id, mes1);
+  const sC = (c) => curr.saldoAhorro(c.id, mes);
 
   const Seccion = ({ titulo, lista, esIngreso }) => {
     // Ordenados por grupo, pero sin filas de subtotal: el grupo va como
@@ -151,6 +157,69 @@ const Tabla = () => {
     );
   };
 
+  // Sección de ahorros: saldo acumulado por mes (subir = verde).
+  const SeccionAhorros = ({ lista }) => {
+    const filas = agrupar(lista).flatMap((g) => g.items);
+    const ars = lista.filter((c) => c.moneda !== 'usd');
+    const usd = lista.filter((c) => c.moneda === 'usd');
+    const tA = sumar(ars, sA), tB = sumar(ars, sB), tC = sumar(ars, sC);
+    const uA = sumar(usd, sA), uB = sumar(usd, sB), uC = sumar(usd, sC);
+    return (
+      <table className="tabla-excel comparativa">
+        <thead>
+          <tr><th className="th-titulo" colSpan={6}>🏦 AHORROS (saldo acumulado)</th></tr>
+          <tr>
+            <th>Concepto</th>
+            <th className="th-imp">{mesCorto(mes2)}</th>
+            <th className="th-var">Var.</th>
+            <th className="th-imp">{mesCorto(mes1)}</th>
+            <th className="th-var">Var.</th>
+            <th className="th-imp th-actual">{mesCorto(mes)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((c) => {
+            const a = sA(c), b = sB(c), cc = sC(c);
+            const vIzq = variacion(a, b), vDer = variacion(b, cc);
+            const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
+            return (
+              <tr key={c.id} className={filaTono(vDer.dir, true)}>
+                <td className="td-concepto">{c.nombre}{grupo && <span className="td-grupo">{grupo}</span>}</td>
+                <td className="td-imp"><Monto v={a} mon={c.moneda} /></td>
+                <td className={`td-var ${varClase(vIzq.dir, true)}`}>{vIzq.txt}</td>
+                <td className="td-imp"><Monto v={b} mon={c.moneda} /></td>
+                <td className={`td-var ${varClase(vDer.dir, true)}`}>{vDer.txt}</td>
+                <td className="td-imp td-actual"><Monto v={cc} mon={c.moneda} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          {ars.length > 0 && (
+            <tr className="fila-total">
+              <td>Total {usd.length > 0 ? '$' : ''}</td>
+              <td className="td-imp">{formatMoneda(tA)}</td>
+              <td className={`td-var ${varClase(variacion(tA, tB).dir, true)}`}>{variacion(tA, tB).txt}</td>
+              <td className="td-imp">{formatMoneda(tB)}</td>
+              <td className={`td-var ${varClase(variacion(tB, tC).dir, true)}`}>{variacion(tB, tC).txt}</td>
+              <td className="td-imp td-actual">{formatMoneda(tC)}</td>
+            </tr>
+          )}
+          {usd.length > 0 && (
+            <tr className="fila-total fila-total-usd">
+              <td>Total US$</td>
+              <td className="td-imp">{formatUSD(uA)}</td>
+              <td className={`td-var ${varClase(variacion(uA, uB).dir, true)}`}>{variacion(uA, uB).txt}</td>
+              <td className="td-imp">{formatUSD(uB)}</td>
+              <td className={`td-var ${varClase(variacion(uB, uC).dir, true)}`}>{variacion(uB, uC).txt}</td>
+              <td className="td-imp td-actual">{formatUSD(uC)}</td>
+            </tr>
+          )}
+        </tfoot>
+      </table>
+    );
+  };
+
   return (
     <Layout>
       <div className="gastos-page ancho">
@@ -170,6 +239,7 @@ const Tabla = () => {
           <div className="tablas-wrap">
             <Seccion titulo="GASTOS" lista={gastoCs} />
             {ingresoCs.length > 0 && <Seccion titulo="INGRESOS" lista={ingresoCs} esIngreso />}
+            {ahorroCs.length > 0 && <SeccionAhorros lista={ahorroCs} />}
             <p className="tabla-nota">Cada <strong>Var.</strong> compara con el mes de su izquierda. ▲ subió · ▼ bajó.</p>
           </div>
         )}

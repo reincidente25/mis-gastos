@@ -9,6 +9,8 @@ import {
   getGastoConcepto,
   guardarGastoRecurrente,
   guardarGastoSemanal,
+  listarAhorros,
+  guardarAhorro,
   setMetaGasto,
   crearGastoSuelto,
   eliminarGasto,
@@ -28,6 +30,7 @@ export const useGastosMes = (mes) => {
 
   const [conceptos, setConceptos] = useState([]);
   const [gastos, setGastos]       = useState([]);
+  const [ahorros, setAhorros]     = useState([]); // todos los movimientos de ahorro
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
 
@@ -36,9 +39,10 @@ export const useGastosMes = (mes) => {
     setLoading(true);
     setError('');
     try {
-      const [cs, gs] = await Promise.all([
+      const [cs, gs, ahs] = await Promise.all([
         listarConceptos(hogarId),
         listarGastosMes(hogarId, mes),
+        listarAhorros(hogarId),
       ]);
       const activos = cs.filter((c) => c.activo);
 
@@ -61,6 +65,7 @@ export const useGastosMes = (mes) => {
 
       setConceptos(activos);
       setGastos(gs);
+      setAhorros(ahs);
     } catch (err) {
       console.error(err);
       setError('No se pudieron cargar los datos del mes.');
@@ -150,9 +155,33 @@ export const useGastosMes = (mes) => {
 
   const total = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
 
+  // ── Ahorros (acumulativos) ──
+  // Movimiento de un concepto en un mes puntual.
+  const movimientoAhorro = (conceptoId, m = mes) =>
+    Number(ahorros.find((a) => a.conceptoId === conceptoId && a.mes === m)?.movimiento) || 0;
+  // Saldo acumulado hasta un mes inclusive (suma de todos los movimientos <= m).
+  const saldoAhorro = (conceptoId, m = mes) =>
+    ahorros
+      .filter((a) => a.conceptoId === conceptoId && a.mes <= m)
+      .reduce((s, a) => s + (Number(a.movimiento) || 0), 0);
+  // Saldo que viene arrastrado del mes anterior (movimientos < m).
+  const saldoAnteriorAhorro = (conceptoId, m = mes) =>
+    ahorros
+      .filter((a) => a.conceptoId === conceptoId && a.mes < m)
+      .reduce((s, a) => s + (Number(a.movimiento) || 0), 0);
+
+  const setAhorro = async (concepto, movimiento) => {
+    const nuevo = await guardarAhorro(hogarId, mes, concepto, movimiento, user.uid);
+    setAhorros((prev) => {
+      const sin = prev.filter((a) => !(a.conceptoId === concepto.id && a.mes === mes));
+      return nuevo ? [...sin, nuevo] : sin;
+    });
+  };
+
   return {
-    conceptos, porConcepto, sueltos, gastos,
+    conceptos, porConcepto, sueltos, gastos, ahorros,
     loading, error, total,
     setImporte, setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
+    setAhorro, movimientoAhorro, saldoAhorro, saldoAnteriorAhorro,
   };
 };

@@ -28,6 +28,16 @@
 .kpi.usd.destacado.neg { background: linear-gradient(135deg, #e11d48, #be123c); }
 @media (max-width: 900px) { .usd-kpis { grid-template-columns: 1fr 1fr; } }
 
+/* KPIs de ahorro acumulado */
+.ahorro-kpis { grid-template-columns: repeat(2, 1fr); }
+.kpi.ahorro { border-color: #bae6fd; background: #f0f9ff; }
+.kpi.ahorro .kpi-label { color: #0369a1; }
+.kpi.ahorro .kpi-valor { color: #075985; }
+.kpi.ahorro.destacado { background: linear-gradient(135deg, #0284c7, #0369a1); border: none; color: #fff; }
+.kpi.ahorro.destacado .kpi-label { color: rgba(255,255,255,0.85); }
+.kpi.ahorro.destacado .kpi-valor { color: #fff; }
+@media (max-width: 900px) { .ahorro-kpis { grid-template-columns: 1fr 1fr; } }
+
 /* Grilla principal del dashboard */
 .home-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
 

@@ -15,7 +15,7 @@ const Home = () => {
   const { hogar } = useHogar();
   const { getCat } = useEstructura();
   const [mes, setMes] = useState(mesActual());
-  const { gastos, conceptos, loading } = useGastosMes(mes);
+  const { gastos, conceptos, loading, saldoAhorro } = useGastosMes(mes);
 
   const tipoDe = useMemo(() => {
     const m = {};
@@ -42,6 +42,12 @@ const Home = () => {
   const usdIngresos = gastos.reduce((a, g) => a + (esUSD(g) && tipoDe(g) === 'ingreso' && g.pagado ? Number(g.monto) || 0 : 0), 0);
   const usdBalance  = usdIngresos - usdGastos;
   const hayUSD      = gastos.some(esUSD);
+
+  // Ahorros acumulados hasta el mes (saldo), por moneda.
+  const ahorroCs = conceptos.filter((c) => c.tipo === 'ahorro');
+  const ahorroUSD = ahorroCs.filter((c) => c.moneda === 'usd').reduce((a, c) => a + saldoAhorro(c.id), 0);
+  const ahorroARS = ahorroCs.filter((c) => c.moneda !== 'usd').reduce((a, c) => a + saldoAhorro(c.id), 0);
+  const hayAhorro = ahorroCs.length > 0;
   // Pagado: montos de gastos marcados pagos; en los semanales, suma solo las
   // semanas ya pagadas (pago parcial).
   const pagado = ars.reduce((a, g) => {
@@ -118,6 +124,19 @@ const Home = () => {
                 <div className={`kpi usd destacado ${usdBalance < 0 ? 'neg' : ''}`}>
                   <span className="kpi-label">Balance US$</span>
                   <span className="kpi-valor">{formatUSD(usdBalance)}</span>
+                </div>
+              </div>
+            )}
+
+            {hayAhorro && (
+              <div className="kpi-row ahorro-kpis">
+                <div className="kpi ahorro destacado">
+                  <span className="kpi-label">🏦 Ahorro acumulado US$</span>
+                  <span className="kpi-valor">{formatUSD(ahorroUSD)}</span>
+                </div>
+                <div className="kpi ahorro">
+                  <span className="kpi-label">🏦 Ahorro acumulado $</span>
+                  <span className="kpi-valor">{formatMoneda(ahorroARS)}</span>
                 </div>
               </div>
             )}
