@@ -53,13 +53,14 @@ const agrupar = (conceptos) => {
 };
 
 const Monto = ({ v, mon }) => (
-  v > 0 ? <span className="tb-imp">{formatImporte(v, mon)}</span> : <span className="tb-imp vacio">$ -</span>
+  v !== 0 ? <span className="tb-imp">{formatImporte(v, mon)}</span> : <span className="tb-imp vacio">$ -</span>
 );
 
 const Tabla = () => {
   const [mes, setMes] = useState(mesActual());
   const mes2 = mesVecino(mes, -2); // dos meses atrás
   const mes1 = mesVecino(mes, -1); // mes anterior
+  const meses = [mes2, mes1, mes]; // de más viejo a actual
 
   const dos = useGastosMes(mes2);
   const uno = useGastosMes(mes1);
@@ -119,7 +120,7 @@ const Tabla = () => {
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
             const tono = filaTono(vDer.dir, esIngreso);
             return (
-              <tr key={c.id} className={`${cc > 0 ? '' : 'fila-vacia'} ${tono}`}>
+              <tr key={c.id} className={`${cc !== 0 ? '' : 'fila-vacia'} ${tono}`}>
                 <td className="td-concepto">
                   {c.nombre}
                   {grupo && <span className="td-grupo">{grupo}</span>}
@@ -157,39 +158,47 @@ const Tabla = () => {
     );
   };
 
-  // Sección de ahorros: saldo acumulado por mes (subir = verde).
+  // Movimiento (importe cargado) de un ahorro en un mes.
+  const movAh = (c, m) => Number(curr.ahorros.find((a) => a.conceptoId === c.id && a.mes === m)?.monto) || 0;
+
+  // Celda de ahorro: movimiento del mes arriba, saldo acumulado abajo.
+  const CeldaAhorro = ({ mov, saldo, mon, actualCol }) => (
+    <td className={`td-mes ${actualCol ? 'td-actual' : ''}`}>
+      <span className={`celda-mov ${mov > 0 ? 'pos' : mov < 0 ? 'neg' : ''}`}>
+        {mov !== 0 ? `${mov > 0 ? '+' : ''}${formatImporte(mov, mon)}` : '—'}
+      </span>
+      <span className="celda-monto">{formatImporte(saldo, mon)}</span>
+    </td>
+  );
+
+  // Sección de ahorros: movimiento por mes + saldo acumulado.
   const SeccionAhorros = ({ lista }) => {
     const filas = agrupar(lista).flatMap((g) => g.items);
     const ars = lista.filter((c) => c.moneda !== 'usd');
     const usd = lista.filter((c) => c.moneda === 'usd');
-    const tA = sumar(ars, sA), tB = sumar(ars, sB), tC = sumar(ars, sC);
-    const uA = sumar(usd, sA), uB = sumar(usd, sB), uC = sumar(usd, sC);
+    const totalSaldo = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
+    const totalMov = (arr, m) => arr.reduce((a, c) => a + movAh(c, m), 0);
     return (
-      <table className="tabla-excel comparativa">
+      <table className="tabla-excel serie">
         <thead>
-          <tr><th className="th-titulo" colSpan={6}>🏦 AHORROS (saldo acumulado)</th></tr>
+          <tr><th className="th-titulo" colSpan={meses.length + 1}>🏦 AHORROS (movimiento y saldo acumulado)</th></tr>
           <tr>
             <th>Concepto</th>
-            <th className="th-imp">{mesCorto(mes2)}</th>
-            <th className="th-var">Var.</th>
-            <th className="th-imp">{mesCorto(mes1)}</th>
-            <th className="th-var">Var.</th>
-            <th className="th-imp th-actual">{mesCorto(mes)}</th>
+            {meses.map((m) => (
+              <th key={m} className={`th-mes ${m === mes ? 'th-actual' : ''}`}>{mesCorto(m)}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {filas.map((c) => {
-            const a = sA(c), b = sB(c), cc = sC(c);
-            const vIzq = variacion(a, b), vDer = variacion(b, cc);
             const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
+            const saldos = { [mes2]: sA(c), [mes1]: sB(c), [mes]: sC(c) };
             return (
-              <tr key={c.id} className={filaTono(vDer.dir, true)}>
+              <tr key={c.id}>
                 <td className="td-concepto">{c.nombre}{grupo && <span className="td-grupo">{grupo}</span>}</td>
-                <td className="td-imp"><Monto v={a} mon={c.moneda} /></td>
-                <td className={`td-var ${varClase(vIzq.dir, true)}`}>{vIzq.txt}</td>
-                <td className="td-imp"><Monto v={b} mon={c.moneda} /></td>
-                <td className={`td-var ${varClase(vDer.dir, true)}`}>{vDer.txt}</td>
-                <td className="td-imp td-actual"><Monto v={cc} mon={c.moneda} /></td>
+                {meses.map((m) => (
+                  <CeldaAhorro key={m} mov={movAh(c, m)} saldo={saldos[m]} mon={c.moneda} actualCol={m === mes} />
+                ))}
               </tr>
             );
           })}
@@ -198,21 +207,23 @@ const Tabla = () => {
           {ars.length > 0 && (
             <tr className="fila-total">
               <td>Total {usd.length > 0 ? '$' : ''}</td>
-              <td className="td-imp">{formatMoneda(tA)}</td>
-              <td className={`td-var ${varClase(variacion(tA, tB).dir, true)}`}>{variacion(tA, tB).txt}</td>
-              <td className="td-imp">{formatMoneda(tB)}</td>
-              <td className={`td-var ${varClase(variacion(tB, tC).dir, true)}`}>{variacion(tB, tC).txt}</td>
-              <td className="td-imp td-actual">{formatMoneda(tC)}</td>
+              {meses.map((m) => (
+                <td key={m} className={`td-mes ${m === mes ? 'td-actual' : ''}`}>
+                  <span className="celda-mov">{formatMoneda(totalMov(ars, m))}</span>
+                  <span className="celda-monto">{formatMoneda(totalSaldo(ars, { [mes2]: sA, [mes1]: sB, [mes]: sC }[m]))}</span>
+                </td>
+              ))}
             </tr>
           )}
           {usd.length > 0 && (
             <tr className="fila-total fila-total-usd">
               <td>Total US$</td>
-              <td className="td-imp">{formatUSD(uA)}</td>
-              <td className={`td-var ${varClase(variacion(uA, uB).dir, true)}`}>{variacion(uA, uB).txt}</td>
-              <td className="td-imp">{formatUSD(uB)}</td>
-              <td className={`td-var ${varClase(variacion(uB, uC).dir, true)}`}>{variacion(uB, uC).txt}</td>
-              <td className="td-imp td-actual">{formatUSD(uC)}</td>
+              {meses.map((m) => (
+                <td key={m} className={`td-mes ${m === mes ? 'td-actual' : ''}`}>
+                  <span className="celda-mov">{formatUSD(totalMov(usd, m))}</span>
+                  <span className="celda-monto">{formatUSD(totalSaldo(usd, { [mes2]: sA, [mes1]: sB, [mes]: sC }[m]))}</span>
+                </td>
+              ))}
             </tr>
           )}
         </tfoot>
