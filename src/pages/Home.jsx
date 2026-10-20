@@ -65,30 +65,31 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Evolución mensual del año */}
-            <section className="card">
-              <div className="card-titulo">
-                <span>Evolución {anio}</span>
-                <Link to="/tabla" className="home-link">Ver tabla →</Link>
-              </div>
-              <EvolucionMensual serie={serie} />
-            </section>
+            {/* Los tres gráficos en una fila */}
+            <div className="home-grid-3">
+              {/* Evolución mensual del año */}
+              <section className="card">
+                <div className="card-titulo">
+                  <span>Evolución {anio}</span>
+                  <Link to="/tabla" className="home-link">Tabla →</Link>
+                </div>
+                <EvolucionMensual serie={serie} />
+              </section>
 
-            <div className="home-grid">
               {/* Gastos por categoría */}
               <section className="card">
                 <div className="card-titulo">
-                  <span>Gastos por categoría</span>
-                  <Link to="/gastos" className="home-link">Ver gastos →</Link>
+                  <span>Por categoría</span>
+                  <Link to="/gastos" className="home-link">Gastos →</Link>
                 </div>
                 {porCategoria.length === 0 ? (
                   <div className="home-vacio">
-                    <p>Sin gastos cargados este mes.</p>
-                    <Link to="/gastos" className="home-cta">Ir a cargar gastos</Link>
+                    <p>Sin gastos este mes.</p>
+                    <Link to="/gastos" className="home-cta">Cargar gastos</Link>
                   </div>
                 ) : (
                   <div className="home-barras">
-                    {porCategoria.slice(0, 7).map(({ cat, monto }) => (
+                    {porCategoria.slice(0, 6).map(({ cat, monto }) => (
                       <div className="barra-row" key={cat.id}>
                         <span className="barra-cat"><span className="barra-icon">{cat.icon}</span>{cat.nombre}</span>
                         <div className="barra-track">

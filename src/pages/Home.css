@@ -5,6 +5,10 @@
 .home-page .card-titulo { margin-bottom: 8px; font-size: 14px; }
 .home-page .home-grid { gap: 12px; }
 
+/* Tres gráficos en una fila */
+.home-grid-3 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; align-items: start; }
+@media (max-width: 900px) { .home-grid-3 { grid-template-columns: 1fr; } }
+
 /* KPIs */
 .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .kpi {
