@@ -205,6 +205,19 @@
 .modal-vence { font-size: 12px; color: var(--color-muted); }
 .modal-vacio { color: var(--color-muted); text-align: center; padding: 12px 0; }
 
+/* Mini-gráfico del modal */
+.modal-grafico { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); position: relative; }
+.modal-grafico-tit { font-size: 11px; font-weight: 700; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+.mini-chart { position: relative; margin-top: 4px; }
+.mini-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.mini-xlabel { fill: var(--color-muted); font-size: 8px; text-anchor: middle; }
+.mini-xlabel.act { fill: var(--color-text); font-weight: 700; }
+.mini-tip {
+  position: absolute; top: -4px; transform: translateX(-50%);
+  background: var(--color-text); color: #fff; font-size: 11px; padding: 3px 7px;
+  border-radius: 6px; white-space: nowrap; pointer-events: none;
+}
+
 @media (max-width: 760px) {
   .comparativa .th-imp, .comparativa .td-imp { width: auto; }
   .tabla-excel { font-size: 12px; }

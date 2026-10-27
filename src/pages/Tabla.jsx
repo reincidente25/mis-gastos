@@ -5,6 +5,8 @@ import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
 import { useEstructura } from '../context/EstructuraContext';
+import { useHogar } from '../context/HogarContext';
+import { listarGastosPorConcepto } from '../services/gastosService';
 import { formatMoneda, formatUSD, formatImporte, mesActual, mesLegible, mesCorto, mesVecino, aplicaEnMes, fechaLarga, fechaCorta } from '../utils/format';
 import './Tabla.css';
 
@@ -61,9 +63,42 @@ const pesosItem = (it) => (it.moneda === 'usd'
   ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
   : (Number(it.monto) || 0));
 
+// Mini-gráfico de barras: evolución del concepto en los últimos meses.
+const MiniBarras = ({ serie, mesActualClave, mon, color }) => {
+  const [hover, setHover] = useState(null);
+  const W = 400, H = 110, mT = 8, mB = 18, mL = 4, mR = 4;
+  const ph = H - mT - mB, pw = W - mL - mR;
+  const max = Math.max(1, ...serie.map((s) => s.monto));
+  const bw = pw / serie.length;
+  const y = (v) => mT + ph - (v / max) * ph;
+  return (
+    <div className="mini-chart">
+      <svg viewBox={`0 0 ${W} ${H}`} className="mini-svg" role="img">
+        {serie.map((s, i) => {
+          const x = mL + i * bw;
+          const act = s.mes === mesActualClave;
+          return (
+            <g key={s.mes} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+              <rect x={x} y={mT} width={bw} height={ph} fill="transparent" />
+              <rect x={x + bw * 0.18} y={y(s.monto)} width={bw * 0.64} height={Math.max(0, mT + ph - y(s.monto))}
+                rx="2" fill={color} opacity={act ? 1 : (hover === i ? 0.85 : 0.5)} />
+              {(i % 2 === 0 || act) && <text x={x + bw / 2} y={H - 5} className={`mini-xlabel ${act ? 'act' : ''}`}>{s.label}</text>}
+            </g>
+          );
+        })}
+      </svg>
+      {hover != null && (
+        <div className="mini-tip" style={{ left: `${(mL + hover * bw + bw / 2) / W * 100}%` }}>
+          <b>{serie[hover].label}</b> {formatImporte(serie[hover].monto, mon)}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Modal con el detalle de cómo se compone un concepto en un mes.
 const DetalleModal = ({ data, cat, onClose }) => {
-  const { concepto, mes, gasto } = data;
+  const { concepto, mes, gasto, serie } = data;
   const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
   const items = gasto?.items || [];
   const esIngreso = concepto.tipo === 'ingreso';
@@ -83,6 +118,12 @@ const DetalleModal = ({ data, cat, onClose }) => {
         </div>
 
         <div className="modal-body">
+          {serie && serie.some((s) => s.monto > 0) && (
+            <div className="modal-grafico">
+              <span className="modal-grafico-tit">Últimos 12 meses</span>
+              <MiniBarras serie={serie} mesActualClave={mes} mon={mon} color={cat?.color || '#4f46e5'} />
+            </div>
+          )}
           {!gasto ? (
             <p className="modal-vacio">No hay nada cargado en este mes.</p>
           ) : gasto.esSemanal ? (
@@ -145,12 +186,35 @@ const Tabla = () => {
   const uno = useGastosMes(mes1);
   const curr = useGastosMes(mes);
   const { getGrp, getCat } = useEstructura();
-  const [detalle, setDetalle] = useState(null); // { concepto, mes, gasto }
+  const { hogar } = useHogar();
+  const [detalle, setDetalle] = useState(null); // { concepto, mes, gasto, serie }
 
   const porMes = { [mes2]: dos.porConcepto, [mes1]: uno.porConcepto, [mes]: curr.porConcepto };
   // Para un suelto, su gasto del mes está en el mapa docs del pseudo-concepto.
   const gastoDe = (c, m) => (c.esSuelto ? c.docs[m] : porMes[m]?.[c.id]);
-  const abrir = (c, m) => setDetalle({ concepto: c, mes: m, gasto: gastoDe(c, m) });
+
+  // Serie de los últimos 12 meses (monto por mes) para el gráfico del modal.
+  const serieUltimos = (docs, hasta, n = 12) => {
+    const map = {};
+    docs.forEach((d) => { if (d.mes) map[d.mes] = (map[d.mes] || 0) + (Number(d.monto) || 0); });
+    return Array.from({ length: n }, (_, i) => {
+      const mm = mesVecino(hasta, -(n - 1 - i));
+      return { mes: mm, label: mesCorto(mm), monto: map[mm] || 0 };
+    });
+  };
+
+  const abrir = async (c, m) => {
+    setDetalle({ concepto: c, mes: m, gasto: gastoDe(c, m), serie: null });
+    let docs = [];
+    if (c.esSuelto) {
+      docs = Object.entries(c.docs).map(([mm, d]) => ({ mes: mm, monto: Number(d.monto) || 0 }));
+    } else if (hogar?.id) {
+      const all = await listarGastosPorConcepto(hogar.id, c.id);
+      docs = all.map((d) => ({ mes: d.mes, monto: Number(d.monto) || 0 }));
+    }
+    const serie = serieUltimos(docs, m, 12);
+    setDetalle((prev) => (prev && prev.concepto.id === c.id && prev.mes === m ? { ...prev, serie } : prev));
+  };
 
   const loading = curr.loading || uno.loading || dos.loading;
   const conceptos = curr.conceptos;
