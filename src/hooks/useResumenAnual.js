@@ -42,6 +42,19 @@ export const useResumenAnual = (mes) => {
 
   const anio = mes.slice(0, 4);
 
+  // Monto efectivamente pagado/cobrado (incluye parciales: semanas e ítems).
+  const montoPagado = (g) => {
+    if (g.esSemanal) {
+      const ms = Array.isArray(g.montosSemana) ? g.montosSemana : [];
+      return ms.reduce((s, m, i) => s + (g.semanas?.[i] ? Number(m) || 0 : 0), 0);
+    }
+    if (g.items?.length) {
+      const pw = (it) => (it.moneda === 'usd' ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0) : (Number(it.monto) || 0));
+      return g.items.reduce((s, it) => s + (it.pagado ? pw(it) : 0), 0);
+    }
+    return g.pagado ? (Number(g.monto) || 0) : 0;
+  };
+
   // Serie mensual del año (solo pesos): gastos vs ingresos cobrados.
   const serie = useMemo(() => {
     const base = Array.from({ length: 12 }, (_, i) => ({
@@ -57,7 +70,7 @@ export const useResumenAnual = (mes) => {
       if (moneda !== 'ars') return;
       const monto = Number(g.monto) || 0;
       if (tipo === 'gasto') base[i].gastos += monto;
-      else if (tipo === 'ingreso' && g.pagado) base[i].ingresos += monto;
+      else if (tipo === 'ingreso') base[i].ingresos += montoPagado(g);
     });
     return base.map((m) => ({ ...m, balance: m.ingresos - m.gastos }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,7 +120,7 @@ export const useResumenAnual = (mes) => {
       const { tipo, moneda, categoriaId } = info(g);
       if (moneda !== 'ars' || tipo === 'ahorro') return;
       const monto = Number(g.monto) || 0;
-      if (tipo === 'ingreso') { if (g.pagado) ingresos += monto; return; }
+      if (tipo === 'ingreso') { ingresos += montoPagado(g); return; }
       gastosT += monto;
       porCat[categoriaId] = (porCat[categoriaId] || 0) + monto;
 
