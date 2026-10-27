@@ -212,6 +212,8 @@
 .mini-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .mini-xlabel { fill: var(--color-muted); font-size: 8px; text-anchor: middle; }
 .mini-xlabel.act { fill: var(--color-text); font-weight: 700; }
+.mini-val { fill: var(--color-muted); font-size: 8px; text-anchor: middle; font-weight: 600; }
+.mini-val.act { fill: var(--color-text); font-weight: 800; }
 .mini-tip {
   position: absolute; top: -4px; transform: translateX(-50%);
   background: var(--color-text); color: #fff; font-size: 11px; padding: 3px 7px;

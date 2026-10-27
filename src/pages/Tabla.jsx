@@ -63,32 +63,42 @@ const pesosItem = (it) => (it.moneda === 'usd'
   ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
   : (Number(it.monto) || 0));
 
-// Mini-gráfico de barras: evolución del concepto en los últimos meses.
-const MiniBarras = ({ serie, mesActualClave, mon, color }) => {
+// Abrevia un número para la etiqueta (120000 -> 120k).
+const abrevia = (v) => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return `${(v / 1e6).toFixed(a >= 1e7 ? 0 : 1)}M`;
+  if (a >= 1e3) return `${Math.round(v / 1e3)}k`;
+  return `${Math.round(v)}`;
+};
+
+// Mini-gráfico de línea: evolución del concepto en los últimos meses.
+const MiniLinea = ({ serie, mesActualClave, mon, color }) => {
   const [hover, setHover] = useState(null);
-  const W = 400, H = 110, mT = 8, mB = 18, mL = 4, mR = 4;
+  const W = 420, H = 120, mT = 18, mB = 18, mL = 10, mR = 10;
   const ph = H - mT - mB, pw = W - mL - mR;
   const max = Math.max(1, ...serie.map((s) => s.monto));
-  const bw = pw / serie.length;
+  const x = (i) => mL + (pw / Math.max(1, serie.length - 1)) * i;
   const y = (v) => mT + ph - (v / max) * ph;
+  const d = serie.map((s, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(s.monto)}`).join(' ');
   return (
     <div className="mini-chart">
       <svg viewBox={`0 0 ${W} ${H}`} className="mini-svg" role="img">
+        <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         {serie.map((s, i) => {
-          const x = mL + i * bw;
           const act = s.mes === mesActualClave;
           return (
             <g key={s.mes} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-              <rect x={x} y={mT} width={bw} height={ph} fill="transparent" />
-              <rect x={x + bw * 0.18} y={y(s.monto)} width={bw * 0.64} height={Math.max(0, mT + ph - y(s.monto))}
-                rx="2" fill={color} opacity={act ? 1 : (hover === i ? 0.85 : 0.5)} />
-              {(i % 2 === 0 || act) && <text x={x + bw / 2} y={H - 5} className={`mini-xlabel ${act ? 'act' : ''}`}>{s.label}</text>}
+              <rect x={x(i) - pw / serie.length / 2} y={mT - 14} width={pw / serie.length} height={ph + 18} fill="transparent" />
+              {s.monto > 0 && <text x={x(i)} y={y(s.monto) - 6} className={`mini-val ${act ? 'act' : ''}`}>{abrevia(s.monto)}</text>}
+              <circle cx={x(i)} cy={y(s.monto)} r={act ? 4 : (hover === i ? 3.5 : 2.5)} fill={color}
+                stroke="#fff" strokeWidth={act ? 1.5 : 0} />
+              {(i % 2 === 0 || act) && <text x={x(i)} y={H - 4} className={`mini-xlabel ${act ? 'act' : ''}`}>{s.label}</text>}
             </g>
           );
         })}
       </svg>
       {hover != null && (
-        <div className="mini-tip" style={{ left: `${(mL + hover * bw + bw / 2) / W * 100}%` }}>
+        <div className="mini-tip" style={{ left: `${x(hover) / W * 100}%` }}>
           <b>{serie[hover].label}</b> {formatImporte(serie[hover].monto, mon)}
         </div>
       )}
@@ -121,7 +131,7 @@ const DetalleModal = ({ data, cat, onClose }) => {
           {serie && serie.some((s) => s.monto > 0) && (
             <div className="modal-grafico">
               <span className="modal-grafico-tit">Últimos 12 meses</span>
-              <MiniBarras serie={serie} mesActualClave={mes} mon={mon} color={cat?.color || '#4f46e5'} />
+              <MiniLinea serie={serie} mesActualClave={mes} mon={mon} color={cat?.color || '#4f46e5'} />
             </div>
           )}
           {!gasto ? (
