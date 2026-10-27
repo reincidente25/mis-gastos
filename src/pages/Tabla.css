@@ -24,6 +24,11 @@
 .comparativa .th-imp, .comparativa .td-imp { width: 130px; }
 
 .td-concepto { color: var(--color-text); }
+/* Badge de gasto suelto en la Tabla */
+.td-suelto {
+  margin-left: 8px; font-size: 9px; font-weight: 700; color: #7c3aed;
+  background: #f3e8ff; border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+}
 /* Grupo como etiqueta en la misma línea del concepto */
 .td-grupo {
   margin-left: 8px; font-size: 10px; font-weight: 600; color: var(--color-muted);

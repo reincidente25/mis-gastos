@@ -148,15 +148,34 @@ const Tabla = () => {
   const [detalle, setDetalle] = useState(null); // { concepto, mes, gasto }
 
   const porMes = { [mes2]: dos.porConcepto, [mes1]: uno.porConcepto, [mes]: curr.porConcepto };
-  const gastoDe = (c, m) => porMes[m]?.[c.id];
+  // Para un suelto, su gasto del mes está en el mapa docs del pseudo-concepto.
+  const gastoDe = (c, m) => (c.esSuelto ? c.docs[m] : porMes[m]?.[c.id]);
   const abrir = (c, m) => setDetalle({ concepto: c, mes: m, gasto: gastoDe(c, m) });
 
   const loading = curr.loading || uno.loading || dos.loading;
   const conceptos = curr.conceptos;
 
-  const mA = (c) => Number(dos.porConcepto[c.id]?.monto) || 0;  // mes -2
-  const mB = (c) => Number(uno.porConcepto[c.id]?.monto) || 0;  // mes -1
-  const mC = (c) => Number(curr.porConcepto[c.id]?.monto) || 0; // actual
+  // Pseudo-conceptos para los gastos sueltos: se agrupan por grupo + nombre y
+  // se muestran como una fila más, con su monto en cada mes.
+  const sueltosPorMes = { [mes2]: dos.sueltos || [], [mes1]: uno.sueltos || [], [mes]: curr.sueltos || [] };
+  const mapaSueltos = {};
+  meses.forEach((m) => (sueltosPorMes[m] || []).forEach((s) => {
+    const key = `${s.grupoId || ''}||${(s.concepto || '').trim().toLowerCase()}`;
+    if (!mapaSueltos[key]) {
+      mapaSueltos[key] = {
+        id: `suelto:${key}`, nombre: s.concepto, grupoId: s.grupoId || '',
+        categoriaId: s.categoriaId || '', tipo: 'gasto', moneda: 'ars',
+        esSuelto: true, montos: {}, docs: {},
+      };
+    }
+    mapaSueltos[key].montos[m] = (mapaSueltos[key].montos[m] || 0) + (Number(s.monto) || 0);
+    mapaSueltos[key].docs[m] = s;
+  }));
+  const sueltoCs = Object.values(mapaSueltos);
+
+  const mA = (c) => (c.esSuelto ? (c.montos[mes2] || 0) : Number(dos.porConcepto[c.id]?.monto) || 0);  // mes -2
+  const mB = (c) => (c.esSuelto ? (c.montos[mes1] || 0) : Number(uno.porConcepto[c.id]?.monto) || 0);  // mes -1
+  const mC = (c) => (c.esSuelto ? (c.montos[mes] || 0) : Number(curr.porConcepto[c.id]?.monto) || 0);  // actual
 
   // Visibles: conceptos que aplican o tienen gasto en alguno de los 3 meses.
   const aplicaAlguno = (c) =>
@@ -164,7 +183,7 @@ const Tabla = () => {
     mA(c) || mB(c) || mC(c);
 
   const visibles = conceptos.filter(aplicaAlguno);
-  const gastoCs   = visibles.filter((c) => (c.tipo || 'gasto') === 'gasto');
+  const gastoCs   = [...visibles.filter((c) => (c.tipo || 'gasto') === 'gasto'), ...sueltoCs];
   const ingresoCs = visibles.filter((c) => c.tipo === 'ingreso');
   const ahorroCs  = conceptos.filter((c) => c.tipo === 'ahorro');
 
@@ -207,6 +226,7 @@ const Tabla = () => {
               <tr key={c.id} className={`${cc !== 0 ? '' : 'fila-vacia'} ${tono}`}>
                 <td className="td-concepto td-click" onClick={() => abrir(c, mes)}>
                   {c.nombre}
+                  {c.esSuelto && <span className="td-suelto">suelto</span>}
                   {grupo && <span className="td-grupo">{grupo}</span>}
                 </td>
                 <td className="td-imp td-click" onClick={() => abrir(c, mes2)}><Monto v={a} mon={c.moneda} /></td>
