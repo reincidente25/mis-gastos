@@ -66,6 +66,9 @@ const DetalleModal = ({ data, cat, onClose }) => {
   const { concepto, mes, gasto } = data;
   const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
   const items = gasto?.items || [];
+  const esIngreso = concepto.tipo === 'ingreso';
+  const tagPagado = esIngreso ? '✓ cobrado' : '✓ pagado';
+  const tagPend = esIngreso ? 'a cobrar' : 'pendiente';
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -89,7 +92,7 @@ const DetalleModal = ({ data, cat, onClose }) => {
                   (Number(m) > 0) && (
                     <div key={i} className="modal-item">
                       <span className="mi-det">{gasto.fechas?.[i] ? fechaLarga(gasto.fechas[i]) : `Semana ${i + 1}`}</span>
-                      <span className={`mi-estado ${gasto.semanas?.[i] ? 'ok' : ''}`}>{gasto.semanas?.[i] ? '✓ pagada' : 'pendiente'}</span>
+                      <span className={`mi-estado ${gasto.semanas?.[i] ? 'ok' : ''}`}>{gasto.semanas?.[i] ? tagPagado : tagPend}</span>
                       <span className="mi-monto">{formatImporte(Number(m) || 0, mon)}</span>
                     </div>
                   )
@@ -101,8 +104,11 @@ const DetalleModal = ({ data, cat, onClose }) => {
             <>
               <div className="modal-lista">
                 {items.map((it, i) => (
-                  <div key={i} className="modal-item">
-                    <span className="mi-det">{it.detalle || 'Ítem'}</span>
+                  <div key={i} className="modal-item con-estado">
+                    <span className="mi-det">
+                      {it.detalle || 'Ítem'}
+                      <span className={`mi-estado ${it.pagado ? 'ok' : ''}`}>{it.pagado ? tagPagado : tagPend}</span>
+                    </span>
                     {it.moneda === 'usd' ? (
                       <span className="mi-conv">US$ {Number(it.monto) || 0} × {Number(it.cotizacion) || 0}</span>
                     ) : <span className="mi-conv" />}
@@ -116,8 +122,10 @@ const DetalleModal = ({ data, cat, onClose }) => {
             <div className="modal-simple">
               <span>Importe cargado</span>
               <strong>{formatImporte(gasto.monto || 0, mon)}</strong>
-              {!mon.includes('usd') && gasto.vencimiento && (
-                <span className="modal-vence">Vence {fechaCorta(gasto.vencimiento)} · {gasto.pagado ? 'Pagado' : 'Pendiente'}</span>
+              {gasto.vencimiento ? (
+                <span className="modal-vence">Vence {fechaCorta(gasto.vencimiento)} · {gasto.pagado ? (esIngreso ? 'Cobrado' : 'Pagado') : (esIngreso ? 'A cobrar' : 'Pendiente')}</span>
+              ) : (
+                <span className="modal-vence">{gasto.pagado ? (esIngreso ? 'Cobrado' : 'Pagado') : (esIngreso ? 'A cobrar' : 'Pendiente')}</span>
               )}
             </div>
           )}

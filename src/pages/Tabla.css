@@ -183,6 +183,12 @@
 .mi-conv { font-size: 11px; color: var(--color-muted); white-space: nowrap; }
 .mi-estado { font-size: 11px; color: #b45309; font-weight: 600; }
 .mi-estado.ok { color: var(--color-success); }
+/* Chip de estado inline en el detalle por ítem */
+.modal-item.con-estado .mi-det .mi-estado {
+  margin-left: 8px; font-size: 10px; border-radius: 5px; padding: 1px 6px;
+  background: #fffbeb;
+}
+.modal-item.con-estado .mi-det .mi-estado.ok { background: #ecfdf5; }
 .mi-monto { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .modal-total {
   display: flex; justify-content: space-between; align-items: center;
