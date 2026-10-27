@@ -53,6 +53,7 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
           monto: Number(it.monto) || 0,
           moneda: it.moneda === 'usd' ? 'usd' : 'ars',
           cotizacion: Number(it.cotizacion) || 0,
+          pagado: Boolean(it.pagado),
         }))
         .filter((it) => it.detalle || it.monto)
     : [];
@@ -70,6 +71,11 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
     return null;
   }
 
+  // Con desglose, el "pagado" general se deriva de los ítems (todos pagados).
+  const pagadoGeneral = items.length
+    ? items.every((it) => it.pagado)
+    : (datos.pagado ?? false);
+
   const payload = {
     mes,
     conceptoId: concepto.id,
@@ -79,7 +85,7 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
     monto: valor,
     items,
     vencimiento: datos.vencimiento ?? '',
-    pagado: datos.pagado ?? false,
+    pagado: pagadoGeneral,
     updatedBy: uid,
     updatedAt: serverTimestamp(),
   };

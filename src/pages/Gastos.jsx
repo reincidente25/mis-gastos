@@ -1,5 +1,5 @@
 // src/pages/Gastos.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
@@ -19,9 +19,32 @@ const estadoGasto = (gasto) => {
     const pagadas = montosS.reduce((n, m, i) => n + (Number(m) > 0 && gasto.semanas?.[i] ? 1 : 0), 0);
     return pagadas === aPagar ? 'pagado' : 'pendiente';
   }
+  // Con desglose: el estado depende del pago por ítem.
+  if (gasto.items?.length) {
+    if (gasto.items.every((it) => it.pagado)) return 'pagado';
+    if (gasto.vencimiento && gasto.vencimiento < hoy()) return 'vencido';
+    return 'pendiente';
+  }
   if (gasto.pagado) return 'pagado';
   if (gasto.vencimiento && gasto.vencimiento < hoy()) return 'vencido';
   return 'pendiente';
+};
+
+// Peso de un ítem del desglose (USD × cotización, o el monto).
+const pesoItem = (it) => (it.moneda === 'usd'
+  ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
+  : (Number(it.monto) || 0));
+
+// Checkbox de pago con estado "parcial" (indeterminado).
+const PagoCheck = ({ checked, parcial, onChange, label }) => {
+  const ref = useRef();
+  useEffect(() => { if (ref.current) ref.current.indeterminate = parcial && !checked; }, [parcial, checked]);
+  return (
+    <label className={`cr-pago ${checked ? 'si' : ''} ${parcial && !checked ? 'parcial' : ''}`}>
+      <input ref={ref} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      {label}
+    </label>
+  );
 };
 const ESTADO_LABEL = {
   pagado: 'Pagado', vencido: 'Vencido', pendiente: 'Pendiente', sincargar: 'Falta cargar',
@@ -216,7 +239,7 @@ const pesosItem = (it) => (it.moneda === 'usd'
   ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
   : (Number(it.monto) || 0));
 
-const DesgloseEditor = ({ items, conMoneda, onChange }) => {
+const DesgloseEditor = ({ items, conMoneda, esIngreso, onChange }) => {
   const nuevo = () => ({ detalle: '', monto: '', moneda: 'ars', cotizacion: '' });
   const [lista, setLista] = useState(
     items.length ? items.map((it) => ({ ...nuevo(), ...it })) : [nuevo()]
@@ -241,6 +264,11 @@ const DesgloseEditor = ({ items, conMoneda, onChange }) => {
     <div className="desglose">
       {lista.map((it, i) => (
         <div className={`desglose-row ${conMoneda ? 'con-moneda' : ''}`} key={i}>
+          <label className={`desglose-pago ${it.pagado ? 'si' : ''}`}
+            title={it.pagado ? (esIngreso ? 'Cobrado' : 'Pagado') : (esIngreso ? 'Marcar cobrado' : 'Marcar pagado')}>
+            <input type="checkbox" checked={Boolean(it.pagado)}
+              onChange={(e) => cambiar(i, 'pagado', e.target.checked)} />
+          </label>
           <input
             className="desglose-detalle" type="text" placeholder="Detalle (ej: Cuota)"
             value={it.detalle} maxLength={60}
@@ -335,6 +363,15 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
   const mon = concepto.moneda === 'usd' ? 'usd' : 'ars';
   const [abierto, setAbierto] = useState(false);
 
+  // Pago general: con desglose, marca/desmarca todos los ítems.
+  const todosPagados = tieneItems && items.every((it) => it.pagado);
+  const algunoPagado = tieneItems && items.some((it) => it.pagado);
+  const pagoChecked = tieneItems ? todosPagados : Boolean(gasto?.pagado);
+  const togglePagoGeneral = (checked) => {
+    if (tieneItems) onGuardarDetalle(concepto, items.map((it) => ({ ...it, pagado: checked })));
+    else onGuardarMeta(concepto, { pagado: checked });
+  };
+
   return (
     <>
       <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
@@ -361,11 +398,8 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
               <VenceInput value={gasto.vencimiento}
                 onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
             )}
-            <label className={`cr-pago ${gasto.pagado ? 'si' : ''}`}>
-              <input type="checkbox" checked={Boolean(gasto.pagado)}
-                onChange={(e) => onGuardarMeta(concepto, { pagado: e.target.checked })} />
-              {esIngreso ? 'Cobrado' : 'Pagado'}
-            </label>
+            <PagoCheck checked={pagoChecked} parcial={algunoPagado && !todosPagados}
+              onChange={togglePagoGeneral} label={esIngreso ? 'Cobrado' : 'Pagado'} />
           </div>
         )}
 
@@ -386,6 +420,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
         <DesgloseEditor
           items={seedItems}
           conMoneda={conMoneda}
+          esIngreso={esIngreso}
           onChange={(nuevos) => onGuardarDetalle(concepto, nuevos)}
         />
       )}
@@ -509,6 +544,11 @@ const Gastos = () => {
     if (g?.esSemanal && e !== 'pagado') {
       const montosS = Array.isArray(g.montosSemana) ? g.montosSemana : [];
       const pagadoMonto = montosS.reduce((s, mm, i) => s + (g.semanas?.[i] ? Number(mm) || 0 : 0), 0);
+      stats.pagado.m += pagadoMonto;
+      stats[e].m += Math.max(0, monto - pagadoMonto);
+    } else if (g?.items?.length && e !== 'pagado') {
+      // Desglose parcial: lo pagado por ítem suma a "Pagados"; el resto, al estado.
+      const pagadoMonto = g.items.reduce((s, it) => s + (it.pagado ? pesoItem(it) : 0), 0);
       stats.pagado.m += pagadoMonto;
       stats[e].m += Math.max(0, monto - pagadoMonto);
     } else {

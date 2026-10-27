@@ -251,7 +251,13 @@
   border-radius: 10px; padding: 10px; margin: 2px 0 8px 46px;
   display: flex; flex-direction: column; gap: 6px;
 }
-.desglose-row { display: grid; grid-template-columns: 1fr 120px auto; gap: 8px; align-items: center; }
+.desglose-row { display: grid; grid-template-columns: auto 1fr 120px auto; gap: 8px; align-items: center; }
+.desglose-pago { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.desglose-pago input { accent-color: var(--color-success); width: 17px; height: 17px; cursor: pointer; }
+.desglose-row.con-moneda .desglose-pago { flex: 0 0 auto; order: -1; }
+/* Pago general parcial (algunos ítems pagados) */
+.cr-pago.parcial { color: #b45309; }
+.cr-pago.parcial input { accent-color: #f59e0b; }
 .desglose-detalle, .desglose-monto {
   padding: 7px 10px; background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: 7px; color: var(--color-text); font-size: 13px; outline: none;

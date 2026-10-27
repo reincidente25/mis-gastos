@@ -119,7 +119,15 @@ export const useResumenAnual = (mes) => {
         pendiente += Math.max(0, monto - pagadoMonto);
         return;
       }
-      // No semanal.
+      // Con desglose: cada ítem pagado resta del pendiente.
+      if (g.items?.length && !g.items.every((it) => it.pagado)) {
+        const pesoIt = (it) => (it.moneda === 'usd' ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0) : (Number(it.monto) || 0));
+        const pagadoMonto = g.items.reduce((s, it) => s + (it.pagado ? pesoIt(it) : 0), 0);
+        pagado += pagadoMonto;
+        pendiente += Math.max(0, monto - pagadoMonto);
+        return;
+      }
+      // No semanal / sin desglose parcial.
       if (g.pagado) pagado += monto;
       else if (g.vencimiento && g.vencimiento < hoy()) vencido += monto;
       else pendiente += monto;
