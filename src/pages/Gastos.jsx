@@ -441,6 +441,7 @@ const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar, onMeta }) => {
         <span>{suelto.concepto}
           <span className="cr-suelto-badge">suelto</span>
           <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
+          <button className="cr-del-inline" title="Eliminar" onClick={() => onBorrar(suelto.id)}>🗑️</button>
         </span>
         <span className="cr-cat">{cat.nombre}</span>
       </span>
@@ -450,8 +451,8 @@ const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar, onMeta }) => {
         <PagoCheck checked={Boolean(suelto.pagado)} parcial={false}
           onChange={(c) => onMeta(suelto.id, { pagado: c })} label="Pagado" />
       </div>
-      <span className="cr-suelto-monto">{formatMoneda(suelto.monto)}</span>
-      <button className="cr-excluir" title="Eliminar" onClick={() => onBorrar(suelto.id)}>🗑️</button>
+      <span className="cr-excluir-spacer" aria-hidden="true" />
+      <span className="cr-total-btn cr-total-static">{formatMoneda(suelto.monto)}</span>
     </div>
   );
 };
