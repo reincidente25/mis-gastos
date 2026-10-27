@@ -549,6 +549,10 @@ button.grupo-head:hover { filter: brightness(0.98); }
 }
 .cr-copiar:hover { background: var(--color-primary-soft); color: var(--color-primary); border-color: #c7d2fe; }
 
+/* Fila clickeable: todo el header despliega el detalle */
+.concepto-row.clickable { cursor: pointer; }
+.concepto-row.clickable:hover { background: var(--color-surface-2); }
+
 /* Botón "no aplica este mes" */
 .cr-excluir {
   flex-shrink: 0; width: 30px; height: 34px; border-radius: 7px;

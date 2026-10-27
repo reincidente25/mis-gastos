@@ -177,7 +177,8 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
 
   return (
     <>
-      <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <div className={`concepto-row clickable estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}
+        onClick={() => setAbierto((a) => !a)}>
         <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
         <span className="cr-nombre">
           <span>
@@ -191,7 +192,7 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
           </span>
         </span>
 
-        <div className="cr-semanal-box">
+        <div className="cr-semanal-box" onClick={(e) => e.stopPropagation()}>
           <span className="cr-semanal-pesos">$</span>
           <MontoSemanalInput value={montoSemanal}
             onCommit={(val) => guardar({ nuevoBase: val })} />
@@ -200,9 +201,10 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
 
         {onExcluir && (
           <button className="cr-excluir" title="No aplica este mes"
-            onClick={() => onExcluir(concepto)}>🚫</button>
+            onClick={(e) => { e.stopPropagation(); onExcluir(concepto); }}>🚫</button>
         )}
-        <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`} onClick={() => setAbierto((a) => !a)} title="Ver semanas">
+        <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setAbierto((a) => !a); }} title="Ver semanas">
           {formatImporte(gasto?.monto || 0, mon)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
       </div>
@@ -374,7 +376,8 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
 
   return (
     <>
-      <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <div className={`concepto-row clickable estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}
+        onClick={() => setAbierto((a) => !a)}>
         <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
           {cat.icon}
         </span>
@@ -393,7 +396,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
         </span>
 
         {tieneGasto && (
-          <div className="cr-inline-meta">
+          <div className="cr-inline-meta" onClick={(e) => e.stopPropagation()}>
             {!esIngreso && (
               <VenceInput value={gasto.vencimiento}
                 onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
@@ -405,13 +408,14 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
 
         {!tieneGasto && onCopiar && (
           <button className="cr-copiar" title="Copiar del mes anterior"
-            onClick={() => onCopiar(concepto)}>⧉</button>
+            onClick={(e) => { e.stopPropagation(); onCopiar(concepto); }}>⧉</button>
         )}
         {onExcluir && (
           <button className="cr-excluir" title="No aplica este mes"
-            onClick={() => onExcluir(concepto)}>🚫</button>
+            onClick={(e) => { e.stopPropagation(); onExcluir(concepto); }}>🚫</button>
         )}
-        <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`} onClick={() => setAbierto((a) => !a)}>
+        <button className={`cr-total-btn ${mon === 'usd' ? 'usd' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setAbierto((a) => !a); }}>
           {formatImporte(gasto?.monto || 0, mon)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
         </button>
       </div>
