@@ -189,5 +189,33 @@ export const actualizarGastoSuelto = async (hogarId, id, datos) => {
   await updateDoc(doc(db, 'hogares', hogarId, 'gastos', id), datos).catch(() => {});
 };
 
+/**
+ * Guarda el desglose (o el monto simple) de un gasto suelto.
+ * items = [{ detalle, monto, moneda, cotizacion, pagado }].
+ */
+export const guardarDesgloseSuelto = async (hogarId, id, items) => {
+  const ref = doc(db, 'hogares', hogarId, 'gastos', id);
+  const pesos = (it) => (it.moneda === 'usd'
+    ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
+    : (Number(it.monto) || 0));
+  const rows = (Array.isArray(items) ? items : [])
+    .map((it) => ({
+      detalle: (it.detalle || '').trim(),
+      monto: Number(it.monto) || 0,
+      moneda: it.moneda === 'usd' ? 'usd' : 'ars',
+      cotizacion: Number(it.cotizacion) || 0,
+      pagado: Boolean(it.pagado),
+    }))
+    .filter((it) => it.detalle || it.monto);
+  const hayDetalle = rows.some((it) => it.detalle);
+  const itemsF = hayDetalle ? rows : [];
+  const valor = rows.reduce((a, it) => a + pesos(it), 0);
+
+  const payload = { monto: valor, items: itemsF };
+  if (itemsF.length) payload.pagado = itemsF.every((it) => it.pagado);
+  await updateDoc(ref, payload).catch(() => {});
+  return payload;
+};
+
 export const eliminarGasto = (hogarId, id) =>
   deleteDoc(doc(db, 'hogares', hogarId, 'gastos', id));

@@ -433,36 +433,65 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
 };
 
 // Fila de un gasto suelto (no recurrente): mismo formato que un concepto,
-// con vencimiento y tilde de pago.
-const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar, onMeta }) => {
+// con vencimiento, tilde de pago y desglose editable.
+const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar, onMeta, onDetalle }) => {
   const { getCat } = useEstructura();
   const cat = getCat(suelto.categoriaId);
   const estado = estadoGasto(suelto);
+  const conMoneda = Boolean(cat.moneda);
+  const items = suelto.items || [];
+  const tieneItems = items.length > 0;
+  const [abierto, setAbierto] = useState(false);
+
+  // Pago general: con desglose, marca/desmarca todos los ítems.
+  const todosPagados = tieneItems && items.every((it) => it.pagado);
+  const algunoPagado = tieneItems && items.some((it) => it.pagado);
+  const pagoChecked = tieneItems ? todosPagados : Boolean(suelto.pagado);
+  const togglePago = (checked) => {
+    if (tieneItems) onDetalle(suelto.id, items.map((it) => ({ ...it, pagado: checked })));
+    else onMeta(suelto.id, { pagado: checked });
+  };
+
+  const seedItems = tieneItems
+    ? items
+    : [{ detalle: '', monto: suelto.monto || '', moneda: 'ars', cotizacion: '', pagado: Boolean(suelto.pagado) }];
+
   return (
-    <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
-      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-      <span className="cr-nombre">
-        <span>{suelto.concepto}
-          <span className="cr-suelto-badge">suelto</span>
-          <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
-          <button className="cr-del-inline" title="Eliminar" onClick={() => onBorrar(suelto.id)}>🗑️</button>
+    <>
+      <div className={`concepto-row clickable estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}
+        onClick={() => setAbierto((a) => !a)}>
+        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+        <span className="cr-nombre">
+          <span>{suelto.concepto}
+            <span className="cr-suelto-badge">suelto</span>
+            <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
+            <button className="cr-del-inline" title="Eliminar"
+              onClick={(e) => { e.stopPropagation(); onBorrar(suelto.id); }}>🗑️</button>
+          </span>
+          <span className="cr-cat">{cat.nombre}{tieneItems ? ` · ${items.length} ítems` : ''}</span>
         </span>
-        <span className="cr-cat">{cat.nombre}</span>
-      </span>
-      <div className="cr-inline-meta">
-        <VenceInput value={suelto.vencimiento}
-          onCommit={(fecha) => onMeta(suelto.id, { vencimiento: fecha })} />
-        <PagoCheck checked={Boolean(suelto.pagado)} parcial={false}
-          onChange={(c) => onMeta(suelto.id, { pagado: c })} label="Pagado" />
+        <div className="cr-inline-meta" onClick={(e) => e.stopPropagation()}>
+          <VenceInput value={suelto.vencimiento}
+            onCommit={(fecha) => onMeta(suelto.id, { vencimiento: fecha })} />
+          <PagoCheck checked={pagoChecked} parcial={algunoPagado && !todosPagados}
+            onChange={togglePago} label="Pagado" />
+        </div>
+        <span className="cr-excluir-spacer" aria-hidden="true" />
+        <button className="cr-total-btn" onClick={(e) => { e.stopPropagation(); setAbierto((a) => !a); }}>
+          {formatMoneda(suelto.monto || 0)} <span className="cr-chevron">{abierto ? '▾' : '▸'}</span>
+        </button>
       </div>
-      <span className="cr-excluir-spacer" aria-hidden="true" />
-      <span className="cr-total-btn cr-total-static">{formatMoneda(suelto.monto)}</span>
-    </div>
+
+      {abierto && (
+        <DesgloseEditor items={seedItems} conMoneda={conMoneda}
+          onChange={(nuevos) => onDetalle(suelto.id, nuevos)} />
+      )}
+    </>
   );
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, onBorrarSuelto, onMetaSuelto, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, onBorrarSuelto, onMetaSuelto, onDetalleSuelto, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -484,14 +513,14 @@ const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum,
           onExcluir={onExcluir} onIncluir={onIncluir} />
       ))}
       {abierto && sueltos.map((s) => (
-        <SueltoRow key={s.id} suelto={s} dentroDeGrupo onBorrar={onBorrarSuelto} onMeta={onMetaSuelto} />
+        <SueltoRow key={s.id} suelto={s} dentroDeGrupo onBorrar={onBorrarSuelto} onMeta={onMetaSuelto} onDetalle={onDetalleSuelto} />
       ))}
     </div>
   );
 };
 
 // Lista de conceptos (y gastos sueltos) agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], onBorrarSuelto, onMetaSuelto, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
+const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], onBorrarSuelto, onMetaSuelto, onDetalleSuelto, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
   // Sueltos agrupados por grupoId.
   const sueltosPorGrupo = {};
   sueltos.forEach((s) => { const k = s.grupoId || ''; (sueltosPorGrupo[k] = sueltosPorGrupo[k] || []).push(s); });
@@ -515,7 +544,7 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], o
             porConcepto={porConcepto} mes={mes} acum={acum}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
             onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
-            onExcluir={onExcluir} onIncluir={onIncluir} onBorrarSuelto={onBorrarSuelto} onMetaSuelto={onMetaSuelto}
+            onExcluir={onExcluir} onIncluir={onIncluir} onBorrarSuelto={onBorrarSuelto} onMetaSuelto={onMetaSuelto} onDetalleSuelto={onDetalleSuelto}
             señal={señal} abrirTodos={abrirTodos} />
         ) : (
           <Fragment key="__sin">
@@ -526,7 +555,7 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], o
                 onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
                 onExcluir={onExcluir} onIncluir={onIncluir} />
             ))}
-            {gs.map((s) => <SueltoRow key={s.id} suelto={s} onBorrar={onBorrarSuelto} onMeta={onMetaSuelto} />)}
+            {gs.map((s) => <SueltoRow key={s.id} suelto={s} onBorrar={onBorrarSuelto} onMeta={onMetaSuelto} onDetalle={onDetalleSuelto} />)}
           </Fragment>
         );
       })}
@@ -549,7 +578,7 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error,
-    setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, setMetaSuelto,
+    setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, setMetaSuelto, setDetalleSuelto,
     saldoAhorro, saldoAnteriorAhorro, excluirMes, incluirMes,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
@@ -612,11 +641,18 @@ const Gastos = () => {
       stats[e].m += monto;
     }
   });
-  // Los gastos sueltos también cuentan por estado.
+  // Los gastos sueltos también cuentan por estado (con desglose parcial).
   sueltos.forEach((s) => {
     const e = estadoGasto(s);
     stats[e].n += 1;
-    stats[e].m += Number(s.monto) || 0;
+    const monto = Number(s.monto) || 0;
+    if (s.items?.length && e !== 'pagado') {
+      const pagadoMonto = s.items.reduce((a, it) => a + (it.pagado ? pesoItem(it) : 0), 0);
+      stats.pagado.m += pagadoMonto;
+      stats[e].m += Math.max(0, monto - pagadoMonto);
+    } else {
+      stats[e].m += monto;
+    }
   });
 
   // Al filtrar por estado, se listan los gastos (y sueltos) de ese estado.
@@ -693,7 +729,7 @@ const Gastos = () => {
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    mes={mes} sueltos={sueltosFiltrados} onBorrarSuelto={borrar} onMetaSuelto={setMetaSuelto}
+                    mes={mes} sueltos={sueltosFiltrados} onBorrarSuelto={borrar} onMetaSuelto={setMetaSuelto} onDetalleSuelto={setDetalleSuelto}
                     onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       onExcluir={excluirMes} onIncluir={incluirMes}
                     señal={expand.n} abrirTodos={expand.abrir} />
@@ -730,7 +766,7 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      mes={mes} sueltos={sueltos} onBorrarSuelto={borrar} onMetaSuelto={setMetaSuelto}
+                      mes={mes} sueltos={sueltos} onBorrarSuelto={borrar} onMetaSuelto={setMetaSuelto} onDetalleSuelto={setDetalleSuelto}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       onExcluir={excluirMes} onIncluir={incluirMes}
                       señal={expand.n} abrirTodos={expand.abrir} />
