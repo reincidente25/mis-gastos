@@ -1,5 +1,5 @@
 // src/pages/Gastos.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
@@ -428,8 +428,25 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
   );
 };
 
+// Fila de un gasto suelto (no recurrente) dentro de la lista de gastos.
+const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar }) => {
+  const { getCat } = useEstructura();
+  const cat = getCat(suelto.categoriaId);
+  return (
+    <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+      <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+      <span className="cr-nombre">
+        <span>{suelto.concepto}<span className="cr-suelto-badge">suelto</span></span>
+        <span className="cr-cat">{cat.nombre}</span>
+      </span>
+      <span className="cr-suelto-monto">{formatMoneda(suelto.monto)}</span>
+      <button className="cr-excluir" title="Eliminar" onClick={() => onBorrar(suelto.id)}>🗑️</button>
+    </div>
+  );
+};
+
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, onBorrarSuelto, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -439,7 +456,9 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDeta
         <span className="grupo-nombre">
           <span className="grupo-chev">{abierto ? '▾' : '▸'}</span>{grupoNombre}
         </span>
-        <span className="grupo-subtotal">{formatMoneda(subtotalGrupo(items, porConcepto))}</span>
+        <span className="grupo-subtotal">
+          {formatMoneda(subtotalGrupo(items, porConcepto) + sueltos.reduce((a, s) => a + (Number(s.monto) || 0), 0))}
+        </span>
       </button>
       {abierto && items.map((c) => (
         <ConceptoRow key={c.id} concepto={c} dentroDeGrupo grupoNombre={grupoNombre}
@@ -448,34 +467,56 @@ const GrupoBloque = ({ grupoNombre, items, porConcepto, mes, acum, onGuardarDeta
           onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
           onExcluir={onExcluir} onIncluir={onIncluir} />
       ))}
+      {abierto && sueltos.map((s) => (
+        <SueltoRow key={s.id} suelto={s} dentroDeGrupo onBorrar={onBorrarSuelto} />
+      ))}
     </div>
   );
 };
 
-// Lista de conceptos agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => (
-  <div className="concepto-lista">
-    {agruparConceptos(lista).map((g) => {
-      const grupoNombre = g.grupoId ? (getGrp(g.grupoId)?.nombre || 'Grupo') : '';
-      return grupoNombre ? (
-        <GrupoBloque key={`g-${g.grupoId}`} grupoNombre={grupoNombre} items={g.items}
-          porConcepto={porConcepto} mes={mes} acum={acum}
-          onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
-          onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
-          onExcluir={onExcluir} onIncluir={onIncluir}
-          señal={señal} abrirTodos={abrirTodos} />
-      ) : (
-        g.items.map((c) => (
-          <ConceptoRow key={c.id} concepto={c}
-            gasto={porConcepto[c.id]} mes={mes} acum={acum ? acum(c.id) : null}
+// Lista de conceptos (y gastos sueltos) agrupada por grupo.
+const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], onBorrarSuelto, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
+  // Sueltos agrupados por grupoId.
+  const sueltosPorGrupo = {};
+  sueltos.forEach((s) => { const k = s.grupoId || ''; (sueltosPorGrupo[k] = sueltosPorGrupo[k] || []).push(s); });
+
+  const grupos = agruparConceptos(lista); // [{ grupoId, items }]
+  const itemsPorGrupo = {};
+  const orden = [];
+  grupos.forEach((g) => { itemsPorGrupo[g.grupoId] = g.items; orden.push(g.grupoId); });
+  Object.keys(sueltosPorGrupo).forEach((k) => { if (!orden.includes(k)) orden.push(k); });
+  // Grupo '' (sin grupo) al final.
+  orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0));
+
+  return (
+    <div className="concepto-lista">
+      {orden.map((gid) => {
+        const grupoNombre = gid ? (getGrp(gid)?.nombre || 'Grupo') : '';
+        const its = itemsPorGrupo[gid] || [];
+        const gs = sueltosPorGrupo[gid] || [];
+        return grupoNombre ? (
+          <GrupoBloque key={`g-${gid}`} grupoNombre={grupoNombre} items={its} sueltos={gs}
+            porConcepto={porConcepto} mes={mes} acum={acum}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
             onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
-            onExcluir={onExcluir} onIncluir={onIncluir} />
-        ))
-      );
-    })}
-  </div>
-);
+            onExcluir={onExcluir} onIncluir={onIncluir} onBorrarSuelto={onBorrarSuelto}
+            señal={señal} abrirTodos={abrirTodos} />
+        ) : (
+          <Fragment key="__sin">
+            {its.map((c) => (
+              <ConceptoRow key={c.id} concepto={c}
+                gasto={porConcepto[c.id]} mes={mes} acum={acum ? acum(c.id) : null}
+                onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
+                onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
+                onExcluir={onExcluir} onIncluir={onIncluir} />
+            ))}
+            {gs.map((s) => <SueltoRow key={s.id} suelto={s} onBorrar={onBorrarSuelto} />)}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+};
 
 const sumaPorTipo = (conceptos, porConcepto, cond) =>
   conceptos.reduce((a, c) => {
@@ -662,11 +703,11 @@ const Gastos = () => {
                       </label>
                     )}
                   </h2>
-                  {gastoCs.length === 0 ? (
+                  {gastoCs.length === 0 && sueltos.length === 0 ? (
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      mes={mes}
+                      mes={mes} sueltos={sueltos} onBorrarSuelto={borrar}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       onExcluir={excluirMes} onIncluir={incluirMes}
                       señal={expand.n} abrirTodos={expand.abrir} />
@@ -693,11 +734,7 @@ const Gastos = () => {
             )}
 
             {filtro === 'todos' && (
-              <GastosSueltos
-                sueltos={sueltos}
-                onAgregar={agregarSuelto}
-                onBorrar={borrar}
-              />
+              <GastosSueltos onAgregar={agregarSuelto} />
             )}
           </>
         )}
@@ -706,16 +743,14 @@ const Gastos = () => {
   );
 };
 
-// ── Gastos sueltos (no recurrentes), mostrados por grupo ──
-const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
-  const { categorias, grupos, getCat, getGrp } = useEstructura();
+// ── Formulario para agregar un gasto suelto (se lista dentro de los grupos) ──
+const GastosSueltos = ({ onAgregar }) => {
+  const { categorias, grupos } = useEstructura();
   const [concepto, setConcepto] = useState('');
   const [monto, setMonto]       = useState('');
   const [categoriaId, setCategoriaId] = useState('');
   const [grupoId, setGrupoId]   = useState('');
   const [guardando, setGuardando] = useState(false);
-
-  const totalSueltos = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
 
   const handleAgregar = async (e) => {
     e.preventDefault();
@@ -729,37 +764,9 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
     }
   };
 
-  // Agrupar los sueltos por grupo (preservando orden; sin grupo al final).
-  const porGrupo = () => {
-    const orden = [], mapa = {};
-    sueltos.forEach((g) => {
-      const k = g.grupoId || '';
-      if (!mapa[k]) { mapa[k] = []; orden.push(k); }
-      mapa[k].push(g);
-    });
-    return orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0))
-      .map((k) => ({ grupoId: k, items: mapa[k] }));
-  };
-
-  const fila = (g) => {
-    const cat = getCat(g.categoriaId);
-    return (
-      <div className="suelto-row" key={g.id}>
-        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
-        <span className="cr-nombre">{g.concepto}<span className="cr-cat">{cat.nombre}</span></span>
-        <span className="suelto-monto">{formatMoneda(g.monto)}</span>
-        <button className="suelto-borrar" onClick={() => onBorrar(g.id)} aria-label="Eliminar">🗑️</button>
-      </div>
-    );
-  };
-
   return (
     <section className="card">
-      <h2 className="card-titulo">
-        Gastos del mes (sueltos)
-        {sueltos.length > 0 && <span className="card-sub">{formatMoneda(totalSueltos)}</span>}
-      </h2>
-
+      <h2 className="card-titulo">➕ Gasto suelto del mes</h2>
       <form className="suelto-form" onSubmit={handleAgregar}>
         <input
           type="text"
@@ -787,24 +794,7 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
         />
         <button type="submit" disabled={guardando}>+ Agregar</button>
       </form>
-
-      {sueltos.length > 0 && (
-        <div className="suelto-grupos">
-          {porGrupo().map((bloque) => {
-            const nombre = bloque.grupoId ? (getGrp(bloque.grupoId)?.nombre || 'Grupo') : 'Sin grupo';
-            const sub = bloque.items.reduce((a, g) => a + (Number(g.monto) || 0), 0);
-            return (
-              <div className="grupo-bloque" key={bloque.grupoId || '__sin'}>
-                <div className="grupo-head">
-                  <span className="grupo-nombre">{nombre}</span>
-                  <span className="grupo-subtotal">{formatMoneda(sub)}</span>
-                </div>
-                {bloque.items.map(fila)}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <p className="suelto-nota">Se agrega a la sección Gastos, dentro del grupo elegido.</p>
     </section>
   );
 };
