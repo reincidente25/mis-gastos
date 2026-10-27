@@ -92,7 +92,7 @@ const MiniLinea = ({ serie, mesActualClave, mon, color }) => {
               {s.monto > 0 && <text x={x(i)} y={y(s.monto) - 6} className={`mini-val ${act ? 'act' : ''}`}>{abrevia(s.monto)}</text>}
               <circle cx={x(i)} cy={y(s.monto)} r={act ? 4 : (hover === i ? 3.5 : 2.5)} fill={color}
                 stroke="#fff" strokeWidth={act ? 1.5 : 0} />
-              {(i % 2 === 0 || act) && <text x={x(i)} y={H - 4} className={`mini-xlabel ${act ? 'act' : ''}`}>{s.label}</text>}
+              <text x={x(i)} y={H - 4} className={`mini-xlabel ${act ? 'act' : ''}`}>{s.label}</text>
             </g>
           );
         })}
@@ -130,7 +130,7 @@ const DetalleModal = ({ data, cat, onClose }) => {
         <div className="modal-body">
           {serie && serie.some((s) => s.monto > 0) && (
             <div className="modal-grafico">
-              <span className="modal-grafico-tit">Últimos 12 meses</span>
+              <span className="modal-grafico-tit">Últimos 6 meses</span>
               <MiniLinea serie={serie} mesActualClave={mes} mon={mon} color={cat?.color || '#4f46e5'} />
             </div>
           )}
@@ -222,7 +222,7 @@ const Tabla = () => {
       const all = await listarGastosPorConcepto(hogar.id, c.id);
       docs = all.map((d) => ({ mes: d.mes, monto: Number(d.monto) || 0 }));
     }
-    const serie = serieUltimos(docs, m, 12);
+    const serie = serieUltimos(docs, m, 6);
     setDetalle((prev) => (prev && prev.concepto.id === c.id && prev.mes === m ? { ...prev, serie } : prev));
   };
 
