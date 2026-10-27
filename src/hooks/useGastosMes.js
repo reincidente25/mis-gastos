@@ -12,6 +12,7 @@ import {
   listarGastosPorConcepto,
   setMetaGasto,
   crearGastoSuelto,
+  actualizarGastoSuelto,
   eliminarGasto,
 } from '../services/gastosService';
 
@@ -180,6 +181,12 @@ export const useGastosMes = (mes) => {
     setGastos((prev) => prev.filter((g) => g.id !== id));
   };
 
+  // Actualiza vencimiento/pagado de un gasto suelto.
+  const setMetaSuelto = async (id, meta) => {
+    await actualizarGastoSuelto(hogarId, id, meta);
+    setGastos((prev) => prev.map((g) => (g.id === id ? { ...g, ...meta } : g)));
+  };
+
   const total = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
 
   // ── Ahorros (acumulativos) ──
@@ -203,7 +210,7 @@ export const useGastosMes = (mes) => {
   return {
     conceptos, porConcepto, sueltos, gastos, ahorros,
     loading, error, total,
-    setImporte, setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, recargar: cargar,
+    setImporte, setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, setMetaSuelto, recargar: cargar,
     saldoAhorro, saldoAnteriorAhorro, excluirMes, incluirMes,
   };
 };

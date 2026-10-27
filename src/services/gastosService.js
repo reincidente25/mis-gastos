@@ -175,11 +175,18 @@ export const crearGastoSuelto = async (hogarId, mes, datos, uid) => {
     categoriaId: datos.categoriaId || '',
     grupoId: datos.grupoId || '',
     monto: Number(datos.monto),
+    vencimiento: datos.vencimiento || '',
+    pagado: false,
     createdBy: uid,
     createdAt: serverTimestamp(),
   };
   const ref = await addDoc(col(hogarId), payload);
   return { id: ref.id, ...payload };
+};
+
+/** Actualiza vencimiento/pagado (u otros campos) de un gasto suelto. */
+export const actualizarGastoSuelto = async (hogarId, id, datos) => {
+  await updateDoc(doc(db, 'hogares', hogarId, 'gastos', id), datos).catch(() => {});
 };
 
 export const eliminarGasto = (hogarId, id) =>

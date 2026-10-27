@@ -428,17 +428,28 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
   );
 };
 
-// Fila de un gasto suelto (no recurrente) dentro de la lista de gastos.
-const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar }) => {
+// Fila de un gasto suelto (no recurrente): mismo formato que un concepto,
+// con vencimiento y tilde de pago.
+const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar, onMeta }) => {
   const { getCat } = useEstructura();
   const cat = getCat(suelto.categoriaId);
+  const estado = estadoGasto(suelto);
   return (
-    <div className={`concepto-row ${dentroDeGrupo ? 'en-grupo' : ''}`}>
+    <div className={`concepto-row estado-${estado} ${dentroDeGrupo ? 'en-grupo' : ''}`}>
       <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
       <span className="cr-nombre">
-        <span>{suelto.concepto}<span className="cr-suelto-badge">suelto</span></span>
+        <span>{suelto.concepto}
+          <span className="cr-suelto-badge">suelto</span>
+          <span className={`cr-estado est-${estado}`}>{ESTADO_LABEL[estado]}</span>
+        </span>
         <span className="cr-cat">{cat.nombre}</span>
       </span>
+      <div className="cr-inline-meta">
+        <VenceInput value={suelto.vencimiento}
+          onCommit={(fecha) => onMeta(suelto.id, { vencimiento: fecha })} />
+        <PagoCheck checked={Boolean(suelto.pagado)} parcial={false}
+          onChange={(c) => onMeta(suelto.id, { pagado: c })} label="Pagado" />
+      </div>
       <span className="cr-suelto-monto">{formatMoneda(suelto.monto)}</span>
       <button className="cr-excluir" title="Eliminar" onClick={() => onBorrar(suelto.id)}>🗑️</button>
     </div>
@@ -446,7 +457,7 @@ const SueltoRow = ({ suelto, dentroDeGrupo, onBorrar }) => {
 };
 
 // Bloque de un grupo, colapsable desde su encabezado.
-const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, onBorrarSuelto, señal, abrirTodos }) => {
+const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, onBorrarSuelto, onMetaSuelto, señal, abrirTodos }) => {
   const [abierto, setAbierto] = useState(false);
   // Cuando cambia la señal global (botón Expandir/Colapsar todos), seguirla.
   useEffect(() => { if (señal > 0) setAbierto(abrirTodos); }, [señal, abrirTodos]);
@@ -468,14 +479,14 @@ const GrupoBloque = ({ grupoNombre, items, sueltos = [], porConcepto, mes, acum,
           onExcluir={onExcluir} onIncluir={onIncluir} />
       ))}
       {abierto && sueltos.map((s) => (
-        <SueltoRow key={s.id} suelto={s} dentroDeGrupo onBorrar={onBorrarSuelto} />
+        <SueltoRow key={s.id} suelto={s} dentroDeGrupo onBorrar={onBorrarSuelto} onMeta={onMetaSuelto} />
       ))}
     </div>
   );
 };
 
 // Lista de conceptos (y gastos sueltos) agrupada por grupo.
-const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], onBorrarSuelto, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
+const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], onBorrarSuelto, onMetaSuelto, onGuardarDetalle, onGuardarMeta, onGuardarSemanal, onCopiar, onExcluir, onIncluir, señal, abrirTodos }) => {
   // Sueltos agrupados por grupoId.
   const sueltosPorGrupo = {};
   sueltos.forEach((s) => { const k = s.grupoId || ''; (sueltosPorGrupo[k] = sueltosPorGrupo[k] || []).push(s); });
@@ -499,7 +510,7 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], o
             porConcepto={porConcepto} mes={mes} acum={acum}
             onGuardarDetalle={onGuardarDetalle} onGuardarMeta={onGuardarMeta}
             onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
-            onExcluir={onExcluir} onIncluir={onIncluir} onBorrarSuelto={onBorrarSuelto}
+            onExcluir={onExcluir} onIncluir={onIncluir} onBorrarSuelto={onBorrarSuelto} onMetaSuelto={onMetaSuelto}
             señal={señal} abrirTodos={abrirTodos} />
         ) : (
           <Fragment key="__sin">
@@ -510,7 +521,7 @@ const ListaConceptos = ({ lista, porConcepto, getGrp, mes, acum, sueltos = [], o
                 onGuardarSemanal={onGuardarSemanal} onCopiar={onCopiar}
                 onExcluir={onExcluir} onIncluir={onIncluir} />
             ))}
-            {gs.map((s) => <SueltoRow key={s.id} suelto={s} onBorrar={onBorrarSuelto} />)}
+            {gs.map((s) => <SueltoRow key={s.id} suelto={s} onBorrar={onBorrarSuelto} onMeta={onMetaSuelto} />)}
           </Fragment>
         );
       })}
@@ -533,7 +544,7 @@ const Gastos = () => {
   const {
     conceptos, porConcepto, sueltos,
     loading, error,
-    setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar,
+    setDetalle, setSemanal, setMeta, copiarAnterior, agregarSuelto, borrar, setMetaSuelto,
     saldoAhorro, saldoAnteriorAhorro, excluirMes, incluirMes,
   } = useGastosMes(mes);
   const { getGrp } = useEstructura();
@@ -596,9 +607,16 @@ const Gastos = () => {
       stats[e].m += monto;
     }
   });
+  // Los gastos sueltos también cuentan por estado.
+  sueltos.forEach((s) => {
+    const e = estadoGasto(s);
+    stats[e].n += 1;
+    stats[e].m += Number(s.monto) || 0;
+  });
 
-  // Al filtrar por estado, se listan los gastos de ese estado.
+  // Al filtrar por estado, se listan los gastos (y sueltos) de ese estado.
   const filtrados = gastoArs.filter((c) => estadoGasto(porConcepto[c.id]) === filtro);
+  const sueltosFiltrados = sueltos.filter((s) => estadoGasto(s) === filtro);
 
   const TILES = [
     { key: 'pagado',    label: '✓ Pagados',   clase: 'st-pagado' },
@@ -666,11 +684,11 @@ const Gastos = () => {
                     {' '}<span className="card-sub">{stats[filtro].n} · {formatMoneda(stats[filtro].m)}</span></span>
                   <button className="filtro-limpiar" onClick={() => setFiltro('todos')}>✕ Quitar filtro</button>
                 </h2>
-                {filtrados.length === 0 ? (
+                {filtrados.length === 0 && sueltosFiltrados.length === 0 ? (
                   <p className="pg-vacio-inline">Ningún concepto en ese estado.</p>
                 ) : (
                   <ListaConceptos lista={filtrados} porConcepto={porConcepto} getGrp={getGrp}
-                    mes={mes}
+                    mes={mes} sueltos={sueltosFiltrados} onBorrarSuelto={borrar} onMetaSuelto={setMetaSuelto}
                     onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       onExcluir={excluirMes} onIncluir={incluirMes}
                     señal={expand.n} abrirTodos={expand.abrir} />
@@ -707,7 +725,7 @@ const Gastos = () => {
                     <p className="pg-vacio-inline">Sin gastos este mes.</p>
                   ) : (
                     <ListaConceptos lista={gastoCs} porConcepto={porConcepto} getGrp={getGrp}
-                      mes={mes} sueltos={sueltos} onBorrarSuelto={borrar}
+                      mes={mes} sueltos={sueltos} onBorrarSuelto={borrar} onMetaSuelto={setMetaSuelto}
                       onGuardarDetalle={setDetalle} onGuardarMeta={setMeta} onGuardarSemanal={setSemanal} onCopiar={copiarAnterior}
                       onExcluir={excluirMes} onIncluir={incluirMes}
                       señal={expand.n} abrirTodos={expand.abrir} />
