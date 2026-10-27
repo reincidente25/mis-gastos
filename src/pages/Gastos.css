@@ -75,9 +75,11 @@
 /* Form de suelto */
 .suelto-form {
   display: grid;
-  grid-template-columns: 1fr 150px 120px auto;
+  grid-template-columns: 1fr 140px 140px 110px auto;
   gap: 8px; margin-bottom: 8px;
 }
+.suelto-grupos { display: flex; flex-direction: column; gap: 10px; }
+.suelto-grupos .grupo-bloque .suelto-row { padding: 9px 12px; }
 .suelto-form input, .suelto-form select {
   padding: 9px 11px; background: var(--color-surface-2);
   border: 1px solid var(--color-border); border-radius: 8px;

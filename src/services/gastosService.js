@@ -167,6 +167,7 @@ export const crearGastoSuelto = async (hogarId, mes, datos, uid) => {
     conceptoId: null,
     concepto: datos.concepto.trim(),
     categoriaId: datos.categoriaId || '',
+    grupoId: datos.grupoId || '',
     monto: Number(datos.monto),
     createdBy: uid,
     createdAt: serverTimestamp(),

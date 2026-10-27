@@ -666,12 +666,13 @@ const Gastos = () => {
   );
 };
 
-// ── Gastos sueltos (no recurrentes) ──
+// ── Gastos sueltos (no recurrentes), mostrados por grupo ──
 const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
-  const { categorias, getCat } = useEstructura();
+  const { categorias, grupos, getCat, getGrp } = useEstructura();
   const [concepto, setConcepto] = useState('');
   const [monto, setMonto]       = useState('');
   const [categoriaId, setCategoriaId] = useState('');
+  const [grupoId, setGrupoId]   = useState('');
   const [guardando, setGuardando] = useState(false);
 
   const totalSueltos = sueltos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
@@ -681,11 +682,35 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
     if (!concepto.trim() || !Number(monto)) return;
     setGuardando(true);
     try {
-      await onAgregar({ concepto, monto, categoriaId });
-      setConcepto(''); setMonto(''); setCategoriaId('');
+      await onAgregar({ concepto, monto, categoriaId, grupoId });
+      setConcepto(''); setMonto(''); setCategoriaId(''); setGrupoId('');
     } finally {
       setGuardando(false);
     }
+  };
+
+  // Agrupar los sueltos por grupo (preservando orden; sin grupo al final).
+  const porGrupo = () => {
+    const orden = [], mapa = {};
+    sueltos.forEach((g) => {
+      const k = g.grupoId || '';
+      if (!mapa[k]) { mapa[k] = []; orden.push(k); }
+      mapa[k].push(g);
+    });
+    return orden.sort((a, b) => (a === '' ? 1 : 0) - (b === '' ? 1 : 0))
+      .map((k) => ({ grupoId: k, items: mapa[k] }));
+  };
+
+  const fila = (g) => {
+    const cat = getCat(g.categoriaId);
+    return (
+      <div className="suelto-row" key={g.id}>
+        <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>{cat.icon}</span>
+        <span className="cr-nombre">{g.concepto}<span className="cr-cat">{cat.nombre}</span></span>
+        <span className="suelto-monto">{formatMoneda(g.monto)}</span>
+        <button className="suelto-borrar" onClick={() => onBorrar(g.id)} aria-label="Eliminar">🗑️</button>
+      </div>
+    );
   };
 
   return (
@@ -709,6 +734,12 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
             <option key={c.id} value={c.id}>{c.icon} {c.nombre}</option>
           ))}
         </select>
+        <select value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
+          <option value="">Grupo…</option>
+          {grupos.map((g) => (
+            <option key={g.id} value={g.id}>{g.nombre}</option>
+          ))}
+        </select>
         <input
           type="number" min="0" step="0.01" placeholder="Monto"
           value={monto}
@@ -718,17 +749,17 @@ const GastosSueltos = ({ sueltos, onAgregar, onBorrar }) => {
       </form>
 
       {sueltos.length > 0 && (
-        <div className="suelto-lista">
-          {sueltos.map((g) => {
-            const cat = getCat(g.categoriaId);
+        <div className="suelto-grupos">
+          {porGrupo().map((bloque) => {
+            const nombre = bloque.grupoId ? (getGrp(bloque.grupoId)?.nombre || 'Grupo') : 'Sin grupo';
+            const sub = bloque.items.reduce((a, g) => a + (Number(g.monto) || 0), 0);
             return (
-              <div className="suelto-row" key={g.id}>
-                <span className="cr-icono" style={{ background: `${cat.color}1a`, color: cat.color }}>
-                  {cat.icon}
-                </span>
-                <span className="cr-nombre">{g.concepto}<span className="cr-cat">{cat.nombre}</span></span>
-                <span className="suelto-monto">{formatMoneda(g.monto)}</span>
-                <button className="suelto-borrar" onClick={() => onBorrar(g.id)} aria-label="Eliminar">🗑️</button>
+              <div className="grupo-bloque" key={bloque.grupoId || '__sin'}>
+                <div className="grupo-head">
+                  <span className="grupo-nombre">{nombre}</span>
+                  <span className="grupo-subtotal">{formatMoneda(sub)}</span>
+                </div>
+                {bloque.items.map(fila)}
               </div>
             );
           })}
