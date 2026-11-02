@@ -162,8 +162,27 @@ export const listarGastosPorConcepto = async (hogarId, conceptoId) => {
 export const setMetaGasto = async (hogarId, mes, concepto, meta) => {
   const id = `${mes}__${concepto.id}`;
   const ref = doc(db, 'hogares', hogarId, 'gastos', id);
-  await updateDoc(ref, meta).catch(() => {}); // solo si el gasto existe
-  return { id, ...meta };
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await updateDoc(ref, meta).catch(() => {});
+    return { id, ...snap.data(), ...meta };
+  }
+  // Aún no hay gasto cargado: crear uno mínimo (monto 0) para guardar la meta
+  // (ej: fijar la fecha de vencimiento antes de cargar el importe).
+  const payload = {
+    mes,
+    conceptoId: concepto.id,
+    concepto: concepto.nombre,
+    categoriaId: concepto.categoriaId || '',
+    grupoId: concepto.grupoId || '',
+    monto: 0,
+    items: [],
+    vencimiento: '',
+    pagado: false,
+    ...meta,
+  };
+  await setDoc(ref, payload);
+  return { id, ...payload };
 };
 
 /** Crea un gasto suelto (no recurrente). */

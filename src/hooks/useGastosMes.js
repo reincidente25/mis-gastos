@@ -153,12 +153,12 @@ export const useGastosMes = (mes) => {
     });
   };
 
-  // Actualiza vencimiento/pagado sin tocar el importe.
+  // Actualiza vencimiento/pagado; si no hay gasto aún, lo crea (monto 0).
   const setMeta = async (concepto, meta) => {
-    const actual = gastos.find((g) => g.conceptoId === concepto.id);
-    if (!actual) return; // solo si ya hay gasto cargado
-    await setMetaGasto(hogarId, mes, concepto, meta);
-    setGastos((prev) => prev.map((g) => (g.conceptoId === concepto.id ? { ...g, ...meta } : g)));
+    const res = await setMetaGasto(hogarId, mes, concepto, meta);
+    setGastos((prev) => (prev.some((g) => g.conceptoId === concepto.id)
+      ? prev.map((g) => (g.conceptoId === concepto.id ? { ...g, ...meta } : g))
+      : [...prev, res]));
   };
 
   // Copia importe/desglose del mes anterior para un concepto (sin pisar

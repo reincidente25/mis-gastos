@@ -26,6 +26,8 @@ const estadoGasto = (gasto) => {
     return 'pendiente';
   }
   if (gasto.pagado) return 'pagado';
+  // Sin importe cargado (ej: solo se fijó el vencimiento) -> falta cargar.
+  if (!(Number(gasto.monto) > 0)) return 'sincargar';
   if (gasto.vencimiento && gasto.vencimiento < hoy()) return 'vencido';
   return 'pendiente';
 };
@@ -373,6 +375,11 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
     if (tieneItems) onGuardarDetalle(concepto, items.map((it) => ({ ...it, pagado: checked })));
     else onGuardarMeta(concepto, { pagado: checked });
   };
+  // ¿Tiene un importe real cargado? (un doc con solo vencimiento tiene monto 0)
+  const cargado = Number(gasto?.monto) > 0 || tieneItems;
+  // La meta (vencimiento + pago) se muestra siempre en gastos; en ingresos,
+  // solo cuando ya hay algo cargado.
+  const mostrarMeta = !esIngreso || tieneGasto;
 
   return (
     <>
@@ -395,10 +402,10 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
           </span>
         </span>
 
-        {tieneGasto && (
+        {mostrarMeta && (
           <div className="cr-inline-meta" onClick={(e) => e.stopPropagation()}>
             {!esIngreso && (
-              <VenceInput value={gasto.vencimiento}
+              <VenceInput value={gasto?.vencimiento}
                 onCommit={(fecha) => onGuardarMeta(concepto, { vencimiento: fecha })} />
             )}
             <PagoCheck checked={pagoChecked} parcial={algunoPagado && !todosPagados}
@@ -406,7 +413,7 @@ const ConceptoRowNormal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, acum, 
           </div>
         )}
 
-        {!tieneGasto && onCopiar && (
+        {!cargado && onCopiar && (
           <button className="cr-copiar" title="Copiar del mes anterior"
             onClick={(e) => { e.stopPropagation(); onCopiar(concepto); }}>⧉</button>
         )}
