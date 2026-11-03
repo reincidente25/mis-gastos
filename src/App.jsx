@@ -10,6 +10,7 @@ import Onboarding from './pages/Onboarding';
 import Home       from './pages/Home';
 import Gastos     from './pages/Gastos';
 import Tabla      from './pages/Tabla';
+import Vencimientos from './pages/Vencimientos';
 import Categorias from './pages/Categorias';
 import Conceptos  from './pages/Conceptos';
 import Grupos     from './pages/Grupos';
@@ -47,6 +48,7 @@ const AppRoutes = () => (
     <Route path="/"           element={<RequireHogar><Home /></RequireHogar>} />
     <Route path="/gastos"     element={<RequireHogar><Gastos /></RequireHogar>} />
     <Route path="/tabla"      element={<RequireHogar><Tabla /></RequireHogar>} />
+    <Route path="/vencimientos" element={<RequireHogar><Vencimientos /></RequireHogar>} />
     <Route path="/tarjetas"   element={<Navigate to="/gastos" replace />} />
     <Route path="/categorias" element={<RequireHogar><Categorias /></RequireHogar>} />
     <Route path="/conceptos"  element={<RequireHogar><Conceptos /></RequireHogar>} />

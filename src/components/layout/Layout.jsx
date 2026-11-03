@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { path: '/',          label: 'Resumen',   icon: '📊' },
   { path: '/gastos',    label: 'Gastos',    icon: '💸' },
   { path: '/tabla',     label: 'Tabla',     icon: '📋' },
+  { path: '/vencimientos', label: 'Vencimientos', icon: '📅' },
   { path: '/categorias', label: 'Categorías', icon: '🏷️' },
   { path: '/conceptos',  label: 'Conceptos',  icon: '📄' },
   { path: '/grupos',     label: 'Grupos',     icon: '📁' },
