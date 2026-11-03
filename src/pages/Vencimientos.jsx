@@ -39,6 +39,35 @@ const etiquetaPlazo = (dias) => {
   return `En ${dias} días`;
 };
 
+// Lunes de la semana de hoy (00:00).
+const lunesDeEstaSemana = () => {
+  const h = new Date(); h.setHours(0, 0, 0, 0);
+  const diaSemana = (h.getDay() + 6) % 7; // 0 = lunes
+  h.setDate(h.getDate() - diaSemana);
+  return h;
+};
+
+// Agrupa los próximos por semana (desde el lunes de esta semana).
+const agruparPorSemana = (items) => {
+  const lunes = lunesDeEstaSemana();
+  const mapa = new Map();
+  items.forEach((x) => {
+    const [y, m, d] = x.fecha.split('-').map(Number);
+    const f = new Date(y, m - 1, d);
+    const semana = Math.max(0, Math.floor((f - lunes) / (7 * 86400000)));
+    if (!mapa.has(semana)) mapa.set(semana, []);
+    mapa.get(semana).push(x);
+  });
+  const nombreMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return [...mapa.keys()].sort((a, b) => a - b).map((semana) => {
+    const ini = new Date(lunes); ini.setDate(ini.getDate() + semana * 7);
+    const fin = new Date(ini); fin.setDate(fin.getDate() + 6);
+    const rango = `${ini.getDate()} ${nombreMes[ini.getMonth()]} – ${fin.getDate()} ${nombreMes[fin.getMonth()]}`;
+    const titulo = semana === 0 ? 'Esta semana' : semana === 1 ? 'Próxima semana' : `En ${semana} semanas`;
+    return { semana, titulo, rango, items: mapa.get(semana) };
+  });
+};
+
 const Vencimientos = () => {
   const { hogar } = useHogar();
   const { getCat } = useEstructura();
@@ -153,12 +182,18 @@ const Vencimientos = () => {
               </section>
             )}
 
-            {proximos.length > 0 && (
-              <section className="card">
-                <h2 className="card-titulo"><span>Próximos</span></h2>
-                <div className="vto-lista">{proximos.map((x) => <Fila key={x.id} x={x} />)}</div>
-              </section>
-            )}
+            {agruparPorSemana(proximos).map((sem) => {
+              const sub = sem.items.filter((x) => x.moneda !== 'usd').reduce((a, x) => a + x.monto, 0);
+              return (
+                <section className="card" key={sem.semana}>
+                  <h2 className="card-titulo">
+                    <span>{sem.titulo} <span className="vto-rango">{sem.rango}</span></span>
+                    <span className="card-sub">{formatMoneda(sub)}</span>
+                  </h2>
+                  <div className="vto-lista">{sem.items.map((x) => <Fila key={x.id} x={x} />)}</div>
+                </section>
+              );
+            })}
 
             <p className="tabla-nota">
               Se cargan y pagan los conceptos desde <Link to="/gastos" className="home-link">Gastos</Link>.
