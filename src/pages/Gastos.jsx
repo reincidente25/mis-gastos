@@ -244,6 +244,26 @@ const ConceptoRowSemanal = ({ concepto, gasto, dentroDeGrupo, grupoNombre, mes, 
   );
 };
 
+// Input numérico con separador de miles (formateado cuando no está en foco).
+const milesNF = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
+const MilesInput = ({ value, onInput, onBlur, className, placeholder, title }) => {
+  const [foco, setFoco] = useState(false);
+  const num = value === '' || value == null ? '' : Number(value);
+  const display = foco
+    ? (value == null ? '' : String(value))
+    : (num === '' || Number.isNaN(num) ? '' : milesNF.format(num));
+  return (
+    <input
+      className={className} type="text" inputMode="decimal" placeholder={placeholder} title={title}
+      value={display}
+      onFocus={() => setFoco(true)}
+      onChange={(e) => onInput(e.target.value.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''))}
+      onBlur={() => { setFoco(false); onBlur && onBlur(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+};
+
 // Editor del desglose de un concepto para el mes.
 const pesosItem = (it) => (it.moneda === 'usd'
   ? (Number(it.monto) || 0) * (Number(it.cotizacion) || 0)
@@ -292,21 +312,19 @@ const DesgloseEditor = ({ items, conMoneda, esIngreso, onChange }) => {
               <option value="usd">US$</option>
             </select>
           )}
-          <input
-            className="desglose-monto" type="number" min="0" step="0.01" placeholder="0"
+          <MilesInput
+            className="desglose-monto" placeholder="0"
             value={it.monto}
-            onChange={(e) => editar(i, 'monto', e.target.value)}
+            onInput={(val) => editar(i, 'monto', val)}
             onBlur={persistir}
-            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
           />
           {conMoneda && it.moneda === 'usd' && (
             <>
-              <input
-                className="desglose-cotiz" type="number" min="0" step="0.01" placeholder="cotiz."
+              <MilesInput
+                className="desglose-cotiz" placeholder="cotiz." title="Cotización del dólar"
                 value={it.cotizacion}
-                onChange={(e) => editar(i, 'cotizacion', e.target.value)}
+                onInput={(val) => editar(i, 'cotizacion', val)}
                 onBlur={persistir}
-                title="Cotización del dólar"
               />
               <span className="desglose-pesos">= {formatMoneda(pesosItem(it))}</span>
             </>
