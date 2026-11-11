@@ -89,11 +89,17 @@ const nombreCorto = (c, grupoNombre) => {
 // valor vuelve de Firestore (los date controlados se "reinician" si no).
 const VenceInput = ({ value, onCommit }) => {
   const [v, setV] = useState(value || '');
-  useEffect(() => { setV(value || ''); }, [value]);
+  const editando = useRef(false);
+  // No pisar lo que se está tipeando: solo sincronizar desde props si el
+  // campo no tiene el foco.
+  useEffect(() => { if (!editando.current) setV(value || ''); }, [value]);
+  const commit = (val) => { if (val !== (value || '')) onCommit(val); };
   return (
     <input
       type="date" min="2000-01-01" max="2100-12-31" value={v}
-      onChange={(e) => { setV(e.target.value); onCommit(e.target.value); }}
+      onFocus={() => { editando.current = true; }}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => { editando.current = false; commit(v); }}
     />
   );
 };
