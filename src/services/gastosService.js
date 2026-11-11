@@ -66,7 +66,9 @@ export const guardarGastoRecurrente = async (hogarId, mes, concepto, datos, uid)
     ? rows.reduce((a, it) => a + pesos(it), 0)
     : Number(datos.monto) || 0;
 
-  if ((!valor || valor <= 0) && items.length === 0) {
+  // Vacío (monto 0 y sin desglose) se borra; un monto negativo es válido
+  // (ej: egreso de un ahorro) y se conserva.
+  if ((valor === 0 || Number.isNaN(valor)) && items.length === 0) {
     await deleteDoc(ref).catch(() => {});
     return null;
   }

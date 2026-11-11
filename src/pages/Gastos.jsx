@@ -257,7 +257,11 @@ const MilesInput = ({ value, onInput, onBlur, className, placeholder, title }) =
       className={className} type="text" inputMode="decimal" placeholder={placeholder} title={title}
       value={display}
       onFocus={() => setFoco(true)}
-      onChange={(e) => onInput(e.target.value.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''))}
+      onChange={(e) => {
+        const neg = e.target.value.trim().startsWith('-');
+        const limpio = e.target.value.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+        onInput((neg ? '-' : '') + limpio);
+      }}
       onBlur={() => { setFoco(false); onBlur && onBlur(); }}
       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
     />
