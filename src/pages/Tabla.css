@@ -24,6 +24,21 @@
 .comparativa .th-imp, .comparativa .td-imp { width: 130px; }
 
 .td-concepto { color: var(--color-text); }
+/* Cabecera de grupo colapsable */
+.fila-grupo-head { cursor: pointer; }
+.fila-grupo-head td { background: var(--color-surface-2); font-weight: 700; }
+.fila-grupo-head:hover td { background: var(--color-primary-soft); }
+.fila-grupo-head .td-concepto { color: var(--color-text); }
+.fila-grupo-head .td-imp { color: var(--color-primary); font-variant-numeric: tabular-nums; }
+.grupo-chev { color: var(--color-primary); font-size: 10px; margin-right: 6px; }
+.grupo-count {
+  margin-left: 8px; font-size: 10px; font-weight: 700; color: var(--color-muted);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 9px; padding: 0 7px;
+}
+/* Concepto dentro de un grupo: indentado */
+.fila-concepto .td-sub { padding-left: 22px; }
+
 /* Badge de gasto suelto en la Tabla */
 .td-suelto {
   margin-left: 8px; font-size: 9px; font-weight: 700; color: #7c3aed;

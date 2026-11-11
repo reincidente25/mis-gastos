@@ -1,6 +1,6 @@
 // src/pages/Tabla.jsx — comparación de 3 meses (anterior · actual · próximo)
 // con % de variación por concepto.
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import Layout from '../components/layout/Layout';
 import MesSelector from '../components/MesSelector';
 import { useGastosMes } from '../hooks/useGastosMes';
@@ -263,15 +263,36 @@ const Tabla = () => {
 
   const sumar = (arr, f) => arr.reduce((a, c) => a + f(c), 0);
 
+  // Grupos colapsados por defecto; clic en la cabecera despliega sus conceptos.
+  const [gruposAbiertos, setGruposAbiertos] = useState({});
+  const toggleGrupo = (key) => setGruposAbiertos((p) => ({ ...p, [key]: !p[key] }));
+
   // Saldo acumulado de ahorro hasta cada mes.
   const sA = (c) => curr.saldoAhorro(c.id, mes2);
   const sB = (c) => curr.saldoAhorro(c.id, mes1);
   const sC = (c) => curr.saldoAhorro(c.id, mes);
 
+  // Fila de un concepto (dentro de un grupo desplegado o suelto).
+  const FilaConcepto = (c, esIngreso) => {
+    const a = mA(c), b = mB(c), cc = mC(c);
+    const vIzq = variacion(a, b), vDer = variacion(b, cc);
+    const tono = filaTono(vDer.dir, esIngreso);
+    return (
+      <tr key={c.id} className={`fila-concepto ${cc !== 0 ? '' : 'fila-vacia'} ${tono}`}>
+        <td className="td-concepto td-click td-sub" onClick={() => abrir(c, mes)}>
+          {c.nombre}{c.esSuelto && <span className="td-suelto">suelto</span>}
+        </td>
+        <td className="td-imp td-click" onClick={() => abrir(c, mes2)}><Monto v={a} mon={c.moneda} /></td>
+        <td className={`td-var ${varClase(vIzq.dir, esIngreso)}`}>{vIzq.txt}</td>
+        <td className="td-imp td-click" onClick={() => abrir(c, mes1)}><Monto v={b} mon={c.moneda} /></td>
+        <td className={`td-var ${varClase(vDer.dir, esIngreso)}`}>{vDer.txt}</td>
+        <td className="td-imp td-actual td-click" onClick={() => abrir(c, mes)}><Monto v={cc} mon={c.moneda} /></td>
+      </tr>
+    );
+  };
+
   const Seccion = ({ titulo, lista, esIngreso }) => {
-    // Ordenados por grupo, pero sin filas de subtotal: el grupo va como
-    // etiqueta en la misma línea del concepto.
-    const ordenada = agrupar(lista).flatMap((g) => g.items);
+    const grupos = agrupar(lista); // [{ grupoId, items }]
     const ars = lista.filter((c) => c.moneda !== 'usd');
     const usd = lista.filter((c) => c.moneda === 'usd');
     const totA = sumar(ars, mA), totB = sumar(ars, mB), totC = sumar(ars, mC);
@@ -290,25 +311,29 @@ const Tabla = () => {
           </tr>
         </thead>
         <tbody>
-          {ordenada.map((c) => {
-            const a = mA(c), b = mB(c), cc = mC(c);
-            const vIzq = variacion(a, b);   // mes-2 → mes-1
-            const vDer = variacion(b, cc);  // mes-1 → actual
-            const grupo = c.grupoId ? (getGrp(c.grupoId)?.nombre || '') : '';
-            const tono = filaTono(vDer.dir, esIngreso);
+          {grupos.map((g) => {
+            // Sin grupo: los conceptos van sueltos, siempre visibles.
+            if (!g.grupoId) return <Fragment key="__sin">{g.items.map((c) => FilaConcepto(c, esIngreso))}</Fragment>;
+            const key = `${esIngreso ? 'i' : 'g'}:${g.grupoId}`;
+            const abiertoG = Boolean(gruposAbiertos[key]);
+            const gA = sumar(g.items, mA), gB = sumar(g.items, mB), gC = sumar(g.items, mC);
+            const vI = variacion(gA, gB), vD = variacion(gB, gC);
             return (
-              <tr key={c.id} className={`${cc !== 0 ? '' : 'fila-vacia'} ${tono}`}>
-                <td className="td-concepto td-click" onClick={() => abrir(c, mes)}>
-                  {c.nombre}
-                  {c.esSuelto && <span className="td-suelto">suelto</span>}
-                  {grupo && <span className="td-grupo">{grupo}</span>}
-                </td>
-                <td className="td-imp td-click" onClick={() => abrir(c, mes2)}><Monto v={a} mon={c.moneda} /></td>
-                <td className={`td-var ${varClase(vIzq.dir, esIngreso)}`}>{vIzq.txt}</td>
-                <td className="td-imp td-click" onClick={() => abrir(c, mes1)}><Monto v={b} mon={c.moneda} /></td>
-                <td className={`td-var ${varClase(vDer.dir, esIngreso)}`}>{vDer.txt}</td>
-                <td className="td-imp td-actual td-click" onClick={() => abrir(c, mes)}><Monto v={cc} mon={c.moneda} /></td>
-              </tr>
+              <Fragment key={g.grupoId}>
+                <tr className="fila-grupo-head" onClick={() => toggleGrupo(key)}>
+                  <td className="td-concepto">
+                    <span className="grupo-chev">{abiertoG ? '▾' : '▸'}</span>
+                    {getGrp(g.grupoId)?.nombre || 'Grupo'}
+                    <span className="grupo-count">{g.items.length}</span>
+                  </td>
+                  <td className="td-imp">{formatMoneda(gA)}</td>
+                  <td className={`td-var ${varClase(vI.dir, esIngreso)}`}>{vI.txt}</td>
+                  <td className="td-imp">{formatMoneda(gB)}</td>
+                  <td className={`td-var ${varClase(vD.dir, esIngreso)}`}>{vD.txt}</td>
+                  <td className="td-imp td-actual">{formatMoneda(gC)}</td>
+                </tr>
+                {abiertoG && g.items.map((c) => FilaConcepto(c, esIngreso))}
+              </Fragment>
             );
           })}
         </tbody>
