@@ -179,6 +179,20 @@
   color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 
+/* Link de invitación */
+.aj-invite { margin-top: 12px; }
+.aj-invite-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.aj-invite-input {
+  flex: 1; min-width: 180px; padding: 9px 11px; background: var(--color-surface-2);
+  border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-muted);
+  font-size: 13px; outline: none;
+}
+.aj-invite-row button {
+  padding: 9px 14px; background: var(--color-primary); border: none; border-radius: 8px;
+  color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.aj-invite-row .aj-invite-compartir { background: var(--color-surface); color: var(--color-primary); border: 1px solid #c7d2fe; }
+
 .aj-logout {
   margin-top: 14px; width: 100%; padding: 10px;
   background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;

@@ -15,6 +15,7 @@ import Categorias from './pages/Categorias';
 import Conceptos  from './pages/Conceptos';
 import Grupos     from './pages/Grupos';
 import Ajustes    from './pages/Ajustes';
+import Invitacion from './pages/Invitacion';
 
 const Pantalla = ({ children }) => (
   <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
@@ -40,6 +41,7 @@ const RequireHogar = ({ children }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/unirse/:codigo" element={<Invitacion />} />
 
     <Route path="/onboarding" element={
       <RequireAuth><Onboarding /></RequireAuth>

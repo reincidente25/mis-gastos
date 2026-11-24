@@ -34,7 +34,10 @@ const Login = () => {
       } else {
         await login(email, password);
       }
-      navigate('/');
+      // Si venían de un link de invitación, completar el ingreso al hogar.
+      let invite = null;
+      try { invite = localStorage.getItem('inviteCodigo'); } catch { /* ignore */ }
+      navigate(invite ? `/unirse/${invite}` : '/');
     } catch (err) {
       setError(MENSAJES_ERROR[err.code] || 'Ocurrió un error. Intentá de nuevo.');
     } finally {

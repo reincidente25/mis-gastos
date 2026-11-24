@@ -33,12 +33,32 @@ const Ajustes = () => {
     finally { setTrabajando(false); }
   };
 
+  const [copiadoLink, setCopiadoLink] = useState(false);
+  const inviteLink = hogar ? `${window.location.origin}/unirse/${hogar.codigo}` : '';
+
   const copiarCodigo = async () => {
     try {
       await navigator.clipboard.writeText(hogar.codigo);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 1800);
     } catch { /* clipboard no disponible */ }
+  };
+
+  const copiarLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopiadoLink(true);
+      setTimeout(() => setCopiadoLink(false), 1800);
+    } catch { /* clipboard no disponible */ }
+  };
+
+  const compartirLink = async () => {
+    const texto = `Te invito a nuestro presupuesto "${hogar?.nombre}" en Mis Gastos: ${inviteLink}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Mis Gastos', text: texto, url: inviteLink }); } catch { /* cancelado */ }
+    } else {
+      copiarLink();
+    }
   };
 
   const handleLogout = async () => {
@@ -68,9 +88,19 @@ const Ajustes = () => {
             </div>
             <button onClick={copiarCodigo}>{copiado ? '¡Copiado!' : 'Copiar'}</button>
           </div>
+          <div className="aj-invite">
+            <span className="aj-codigo-label">Link de invitación</span>
+            <div className="aj-invite-row">
+              <input className="aj-invite-input" type="text" readOnly value={inviteLink}
+                onFocus={(e) => e.target.select()} />
+              <button onClick={copiarLink}>{copiadoLink ? '¡Copiado!' : 'Copiar'}</button>
+              <button className="aj-invite-compartir" onClick={compartirLink}>Compartir</button>
+            </div>
+          </div>
           <p className="pg-vacio-inline" style={{ marginTop: 10 }}>
-            Compartí este código con tu pareja para que se una al mismo presupuesto
-            desde “Unirme con código”.
+            Mandá el link: quien lo abra crea su cuenta (o inicia sesión) y se suma
+            automáticamente a este hogar. También pueden usar el código desde
+            “Unirme con código”.
           </p>
         </section>
 
