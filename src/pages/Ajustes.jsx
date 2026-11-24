@@ -7,10 +7,31 @@ import { useAuth } from '../context/AuthContext';
 import './Gastos.css';
 
 const Ajustes = () => {
-  const { hogar } = useHogar();
+  const { hogar, hogares, cambiarHogar, crearHogar, unirseConCodigo } = useHogar();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [copiado, setCopiado] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [msg, setMsg] = useState('');
+  const [trabajando, setTrabajando] = useState(false);
+
+  const handleCrear = async (e) => {
+    e.preventDefault();
+    if (!nuevoNombre.trim() || trabajando) return;
+    setTrabajando(true); setMsg('');
+    try { await crearHogar(nuevoNombre); setNuevoNombre(''); }
+    finally { setTrabajando(false); }
+  };
+
+  const handleUnirse = async (e) => {
+    e.preventDefault();
+    if (!codigo.trim() || trabajando) return;
+    setTrabajando(true); setMsg('');
+    try { await unirseConCodigo(codigo); setCodigo(''); }
+    catch { setMsg('Código inválido.'); }
+    finally { setTrabajando(false); }
+  };
 
   const copiarCodigo = async () => {
     try {
@@ -51,6 +72,34 @@ const Ajustes = () => {
             Compartí este código con tu pareja para que se una al mismo presupuesto
             desde “Unirme con código”.
           </p>
+        </section>
+
+        <section className="card">
+          <h2 className="card-titulo">Mis hogares <span className="card-sub">{hogares.length}</span></h2>
+          <div className="hogares-lista">
+            {hogares.map((h) => (
+              <div key={h.id} className={`hogar-item ${h.id === hogar?.id ? 'activo' : ''}`}>
+                <span className="hogar-nombre">🏠 {h.nombre}</span>
+                {h.id === hogar?.id
+                  ? <span className="hogar-badge">Activo</span>
+                  : <button className="hogar-usar" onClick={() => cambiarHogar(h.id)}>Usar</button>}
+              </div>
+            ))}
+          </div>
+
+          <div className="hogar-forms">
+            <form className="hogar-form" onSubmit={handleCrear}>
+              <input type="text" placeholder="Nombre del nuevo hogar" value={nuevoNombre}
+                onChange={(e) => setNuevoNombre(e.target.value)} maxLength={40} />
+              <button type="submit" disabled={trabajando}>+ Crear hogar</button>
+            </form>
+            <form className="hogar-form" onSubmit={handleUnirse}>
+              <input type="text" placeholder="Código de invitación" value={codigo}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase())} maxLength={6} />
+              <button type="submit" disabled={trabajando}>Unirme</button>
+            </form>
+          </div>
+          {msg && <p className="pg-error" style={{ textAlign: 'left', padding: '6px 0' }}>{msg}</p>}
         </section>
 
         <section className="card">

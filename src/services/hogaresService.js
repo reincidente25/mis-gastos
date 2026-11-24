@@ -44,6 +44,18 @@ export const getHogar = async (hogarId) => {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
+/** Todos los hogares de los que el usuario es miembro. */
+export const listarHogares = async (uid) => {
+  const q = query(collection(db, 'hogares'), where('miembros', 'array-contains', uid));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+/** Cambia el hogar activo del usuario. */
+export const seleccionarHogar = async (uid, hogarId) => {
+  await updateDoc(usuarioRef(uid), { hogarId });
+};
+
 /** Crea un hogar nuevo, lo siembra con conceptos/tarjetas y lo asigna al usuario. */
 export const crearHogar = async (uid, email, nombre) => {
   const codigo = generarCodigo();

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useHogar } from '../../context/HogarContext';
 import './Layout.css';
 
 const NAV_ITEMS = [
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 
 const Layout = ({ children }) => {
   const { user, logout }    = useAuth();
+  const { hogar, hogares, cambiarHogar } = useHogar();
   const navigate             = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -34,6 +36,17 @@ const Layout = ({ children }) => {
           <span className="logo-icon">💸</span>
           <span className="logo-texto">Mis Gastos</span>
         </div>
+
+        {hogar && (
+          hogares.length > 1 ? (
+            <select className="hogar-switch" value={hogar.id}
+              onChange={(e) => cambiarHogar(e.target.value)}>
+              {hogares.map((h) => <option key={h.id} value={h.id}>🏠 {h.nombre}</option>)}
+            </select>
+          ) : (
+            <div className="hogar-actual">🏠 {hogar.nombre}</div>
+          )
+        )}
 
         <nav className="sidebar-nav">
           {NAV_ITEMS.map(item => (

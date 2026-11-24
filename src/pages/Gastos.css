@@ -130,6 +130,35 @@
 }
 .cat-select:focus { border-color: var(--color-primary); background: #fff; }
 
+/* Mis hogares (Ajustes) */
+.hogares-lista { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.hogar-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border: 1px solid var(--color-border); border-radius: 10px;
+  background: var(--color-surface-2);
+}
+.hogar-item.activo { border-color: #c7d2fe; background: var(--color-primary-soft); }
+.hogar-nombre { font-size: 14px; font-weight: 600; }
+.hogar-badge { font-size: 11px; font-weight: 700; color: var(--color-primary); }
+.hogar-usar {
+  background: var(--color-primary); color: #fff; border: none; border-radius: 7px;
+  padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.hogar-usar:hover { opacity: 0.92; }
+.hogar-forms { display: flex; flex-direction: column; gap: 8px; }
+.hogar-form { display: flex; gap: 8px; }
+.hogar-form input {
+  flex: 1; padding: 9px 11px; background: var(--color-surface-2);
+  border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text);
+  font-size: 14px; outline: none;
+}
+.hogar-form input:focus { border-color: var(--color-primary); background: #fff; }
+.hogar-form button {
+  padding: 9px 14px; background: var(--color-primary); border: none; border-radius: 8px;
+  color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.hogar-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Datos en Ajustes */
 .aj-dato {
   display: flex; justify-content: space-between; align-items: center;

@@ -34,6 +34,16 @@
 
 .logo-icon { font-size: 22px; }
 
+/* Selector / nombre del hogar activo */
+.hogar-switch, .hogar-actual {
+  margin: 8px 12px 4px; padding: 8px 10px; border-radius: 8px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  font-size: 13px; font-weight: 600; color: var(--color-text);
+}
+.hogar-switch { cursor: pointer; outline: none; }
+.hogar-switch:focus { border-color: var(--color-primary); }
+.hogar-actual { color: var(--color-muted); }
+
 /* ── Nav items ── */
 .sidebar-nav {
   flex: 1;
