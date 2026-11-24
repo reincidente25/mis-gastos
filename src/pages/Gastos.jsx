@@ -258,8 +258,20 @@ const MilesInput = ({ value, onInput, onBlur, className, placeholder, title }) =
       value={display}
       onFocus={() => setFoco(true)}
       onChange={(e) => {
-        const neg = e.target.value.trim().startsWith('-');
-        const limpio = e.target.value.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+        let s = e.target.value.replace(/[^\d.,-]/g, '');
+        const neg = s.trim().startsWith('-');
+        s = s.replace(/-/g, '');
+        // Separador decimal: la coma (es-AR) o un punto con 0–2 dígitos al final;
+        // cualquier otro punto/coma es separador de miles.
+        let dec = -1;
+        if (s.includes(',')) dec = s.lastIndexOf(',');
+        else if (/\.\d{0,2}$/.test(s)) dec = s.lastIndexOf('.');
+        let limpio;
+        if (dec === -1) {
+          limpio = s.replace(/[.,]/g, '');
+        } else {
+          limpio = s.slice(0, dec).replace(/[.,]/g, '') + '.' + s.slice(dec + 1).replace(/[.,]/g, '');
+        }
         onInput((neg ? '-' : '') + limpio);
       }}
       onBlur={() => { setFoco(false); onBlur && onBlur(); }}
